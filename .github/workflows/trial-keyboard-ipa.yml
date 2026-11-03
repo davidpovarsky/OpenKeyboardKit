@@ -5,6 +5,7 @@ on:
     branches:
       - trial/ipad-keyboard
       - feature/native-js-script-lab
+      - fix/keyboard-bottom-docking
     paths:
       - 'TrialApp/**'
       - 'TrialKeyboard.yml'
@@ -14,7 +15,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -54,6 +55,24 @@ jobs:
           ditto "$APP" "Payload/TrialKeyboard.app"
           zip -qry TrialKeyboard-unsigned.ipa Payload
           unzip -l TrialKeyboard-unsigned.ipa | grep 'TrialKeyboardExtension.appex'
+          python3 - <<'PY'
+          import plistlib
+          from pathlib import Path
+
+          app = Path(".build/DerivedData/Build/Products/Release-iphoneos/TrialKeyboard.app")
+          extension = app / "PlugIns" / "TrialKeyboardExtension.appex"
+          host = plistlib.loads((app / "Info.plist").read_bytes())
+          keyboard = plistlib.loads((extension / "Info.plist").read_bytes())
+          attrs = keyboard["NSExtension"]["NSExtensionAttributes"]
+          assert keyboard["NSExtension"]["NSExtensionPointIdentifier"] == "com.apple.keyboard-service"
+          assert keyboard["NSExtension"]["NSExtensionPrincipalClass"] == "TrialKeyboardExtension.KeyboardViewController"
+          assert keyboard["CFBundleIdentifier"] == host["CFBundleIdentifier"] + ".extension"
+          assert keyboard["CFBundleShortVersionString"] == "0.2.1"
+          assert attrs["RequestsOpenAccess"] is True
+          assert attrs["IsASCIICapable"] is True
+          assert attrs["PrimaryLanguage"] == "en-US"
+          print("Verified system keyboard .appex, bundle IDs, language and Full Access request")
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: TrialKeyboard-unsigned-IPA
@@ -67,3 +86,21 @@ jobs:
           name: trial-build-log
           path: trial-build.log
           if-no-files-found: ignore
+      - name: Publish Keyboard Lab v0.2.1 unsigned IPA
+        if: github.ref == 'refs/heads/fix/keyboard-bottom-docking'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: keyboard-lab-v0.2.1
+          name: "Keyboard Lab v0.2.1 - Bottom Docking"
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          files: TrialKeyboard-unsigned.ipa
+          fail_on_unmatched_files: true
+          body: |
+            iPad keyboard experiment based on OpenKeyboardKit (MIT).
+            - Pin original-size keyboard keys to the bottom; extra vertical space remains above.
+            - Persist expanded/compact state and stabilize height calculation across window changes.
+            - Improve system keyboard setup instructions and embedded-extension diagnostics.
+            - Retains SwiftUI Script Studio, JavaScriptCore and Full Access request.
+            This IPA is UNSIGNED: use SideStore/AltStore to re-sign both the host app and its embedded keyboard extension.
+            Keyboard availability must be tested in Notes and other supported apps; iPadOS may block third-party keyboards.
