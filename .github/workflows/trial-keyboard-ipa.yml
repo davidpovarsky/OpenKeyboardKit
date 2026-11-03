@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - trial/ipad-keyboard
+      - feature/native-js-script-lab
     paths:
       - 'TrialApp/**'
       - 'TrialKeyboard.yml'
