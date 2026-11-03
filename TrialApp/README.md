@@ -18,3 +18,13 @@ Full Access does NOT bypass the sandbox, authorize access to passwords, other ap
 
 Build:
 GitHub Actions macOS Intel runner invokes xcodegen and xcodebuild, validates the embedded TrialKeyboardExtension.appex, and creates a re-signable TrialKeyboard-unsigned.ipa. No signing certificate or Apple ID secret is included.
+
+
+## v0.2.1: Bottom docking and system keyboard diagnostics
+
+- SwiftUI layout: the original-size OpenKeyboardKit key rows and toolbar are pinned to the **bottom** of the keyboard extension with a flexible spacer above them. Expanded height must not stretch the keys or move them upward.
+- Expansion state is persisted and the keyboard height request is based on scene coordinate-space height, not the extension's feedback-prone window height. Rotation, Stage Manager, and Split View still require on-device testing.
+- The host app now checks whether the embedded `TrialKeyboardExtension.appex` is present **after installation** and explains how to activate the keyboard from iPadOS Settings.
+- This check cannot determine whether iPadOS registered the extension successfully or whether SideStore signed the extension correctly. To test the third-party keyboard, manually enable it via Settings → General → Keyboard → Keyboards, then long-press the globe key in Notes. Re-add it after updating if missing.
+- Apple blocks third-party keyboards in secure/password and phone-pad fields and may allow apps to opt out of keyboard extensions. This cannot be overridden.
+- Keep the .appex included when re-signing the unsigned IPA using SideStore/AltStore.
