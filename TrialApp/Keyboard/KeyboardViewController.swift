@@ -49,14 +49,16 @@ final class KeyboardViewController: KeyboardInputViewController {
     }
 
     private func availableWindowHeight() -> CGFloat {
-        if let window = view.window {
-            let height = window.bounds.height
-            if height > 200 { return height }
-            if let scene = window.windowScene {
-                let sceneHeight = scene.coordinateSpace.bounds.height
-                if sceneHeight > 200 { return sceneHeight }
-            }
+        // IMPORTANT: A keyboard extension can live in a window whose height
+        // equals the keyboard height we requested. Using window.bounds.height
+        // here feeds the constraint back into itself and collapses expansion.
+        // Scene coordinate space is independent of our keyboard constraint.
+        if let sceneHeight = view.window?.windowScene?.coordinateSpace.bounds.height,
+           sceneHeight > 300 {
+            return sceneHeight
         }
+        // Screen height is a stable fallback; iPadOS will clamp the extension
+        // if Split View or another host cannot accommodate our requested size.
         return max(UIScreen.main.bounds.height, 400)
     }
 
