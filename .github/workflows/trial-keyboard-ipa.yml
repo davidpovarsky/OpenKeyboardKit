@@ -1,0 +1,68 @@
+name: Build Trial Keyboard IPA
+
+on:
+  push:
+    branches:
+      - trial/ipad-keyboard
+    paths:
+      - 'TrialApp/**'
+      - 'TrialKeyboard.yml'
+      - 'Sources/**'
+      - 'Package.swift'
+      - '.github/workflows/trial-keyboard-ipa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 16.4
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.4'
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate --spec TrialKeyboard.yml
+      - name: Build iOS app and keyboard extension (unsigned)
+        shell: bash
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project TrialKeyboard.xcodeproj \
+            -scheme TrialKeyboard \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$PWD/.build/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build 2>&1 | tee trial-build.log
+      - name: Verify app contains keyboard extension and assemble IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP=".build/DerivedData/Build/Products/Release-iphoneos/TrialKeyboard.app"
+          test -d "$APP"
+          test -d "$APP/PlugIns/TrialKeyboardExtension.appex"
+          mkdir -p Payload
+          ditto "$APP" "Payload/TrialKeyboard.app"
+          zip -qry TrialKeyboard-unsigned.ipa Payload
+          unzip -l TrialKeyboard-unsigned.ipa | grep 'TrialKeyboardExtension.appex'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TrialKeyboard-unsigned-IPA
+          path: TrialKeyboard-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30
+      - name: Save build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trial-build-log
+          path: trial-build.log
+          if-no-files-found: ignore
