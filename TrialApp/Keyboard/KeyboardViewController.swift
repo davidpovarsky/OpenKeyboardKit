@@ -5,15 +5,24 @@ import UIKit
 final class KeyboardViewController: KeyboardInputViewController {
     private var heightConstraint: NSLayoutConstraint?
     private var expanded = true
-    private var previousHeight: CGFloat = 0
+    private var lastRequestedHeight: CGFloat = 0
+    private let expansionKey = "keyboard.lab.expanded"
 
     override func viewDidLoad() {
         super.viewDidLoad()
+
+        // The system decides which text fields can load third-party keyboards.
+        // We use a normal keyboard extension so the same extension is available
+        // through the globe key in other apps.
+        expanded = UserDefaults.standard.object(forKey: expansionKey) as? Bool ?? true
         setup(for: .trialKeyboard) { _ in }
-        let constraint = view.heightAnchor.constraint(equalToConstant: desiredHeight())
-        constraint.priority = .defaultHigh
+
+        // One explicit height constraint, adjustable without rebuilding keys.
+        let constraint = view.heightAnchor.constraint(equalToConstant: requestedHeight())
+        constraint.priority = UILayoutPriority(999)
         constraint.isActive = true
         heightConstraint = constraint
+        lastRequestedHeight = constraint.constant
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -21,39 +30,55 @@ final class KeyboardViewController: KeyboardInputViewController {
         updateHeight()
     }
 
-    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        // Window dimensions also change in Split View and Stage Manager.
+        // The threshold below prevents keyboard-layout feedback loops.
+        updateHeight()
+    }
+
+    override func viewWillTransition(
+        to size: CGSize,
+        with coordinator: UIViewControllerTransitionCoordinator
+    ) {
         super.viewWillTransition(to: size, with: coordinator)
+        // The transition size may describe the extension, not host window.
         coordinator.animate(alongsideTransition: { [weak self] _ in
-            self?.updateHeight(availableHeight: size.height)
+            self?.updateHeight()
         })
     }
 
-    private func desiredHeight(availableHeight: CGFloat = 0) -> CGFloat {
-        let screenHeight: CGFloat
-        if availableHeight > 400 {
-            screenHeight = availableHeight
-        } else if let window = view.window {
-            screenHeight = max(window.bounds.height, 400)
-        } else {
-            screenHeight = max(UIScreen.main.bounds.height, 400)
+    private func availableWindowHeight() -> CGFloat {
+        if let window = view.window {
+            let height = window.bounds.height
+            if height > 200 { return height }
+            if let scene = window.windowScene {
+                let sceneHeight = scene.coordinateSpace.bounds.height
+                if sceneHeight > 200 { return sceneHeight }
+            }
         }
-        if UIDevice.current.userInterfaceIdiom == .pad {
-            return expanded
-                ? min(620, max(340, screenHeight * 0.57))
-                : min(375, max(270, screenHeight * 0.34))
-        } else {
-            return expanded
-                ? min(470, max(315, screenHeight * 0.52))
-                : min(305, max(245, screenHeight * 0.33))
-        }
+        return max(UIScreen.main.bounds.height, 400)
     }
 
-    private func updateHeight(availableHeight: CGFloat = 0) {
-        let target = desiredHeight(availableHeight: availableHeight)
-        guard abs(previousHeight - target) > 2 else { return }
-        previousHeight = target
+    private func requestedHeight() -> CGFloat {
+        let availableHeight = availableWindowHeight()
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            return expanded
+                ? min(620, max(340, availableHeight * 0.57))
+                : min(375, max(270, availableHeight * 0.34))
+        }
+        return expanded
+            ? min(470, max(315, availableHeight * 0.52))
+            : min(305, max(245, availableHeight * 0.33))
+    }
+
+    private func updateHeight() {
+        let target = requestedHeight()
+        guard abs(lastRequestedHeight - target) > 2 else { return }
+        lastRequestedHeight = target
         heightConstraint?.constant = target
-        UIView.performWithoutAnimation { view.layoutIfNeeded() }
+        // SwiftUI bottom-anchors the intrinsic-height keyboard separately.
+        view.setNeedsLayout()
     }
 
     override func viewWillSetupKeyboardView() {
@@ -69,8 +94,10 @@ final class KeyboardViewController: KeyboardInputViewController {
                 },
                 fullAccess: self?.hasFullAccess ?? false,
                 setExpanded: { [weak self] newValue in
-                    self?.expanded = newValue
-                    self?.updateHeight()
+                    guard let self else { return }
+                    self.expanded = newValue
+                    UserDefaults.standard.set(newValue, forKey: self.expansionKey)
+                    self.updateHeight()
                 }
             )
         }
