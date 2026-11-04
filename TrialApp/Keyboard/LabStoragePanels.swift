@@ -81,6 +81,29 @@ struct LabClipboardPanel: View {
                 .padding(13)
                 .background(Color(uiColor: .tertiarySystemBackground),
                             in: RoundedRectangle(cornerRadius: 13))
+                .contextMenu {
+                    Button {
+                        insertText(item.text)
+                    } label: {
+                        Label("Insert Clip", systemImage: "text.insert")
+                    }
+                    Button {
+                        if fullAccess { UIPasteboard.general.string = item.text }
+                    } label: {
+                        Label("Copy Clip", systemImage: "doc.on.doc")
+                    }
+                    .disabled(!fullAccess)
+                    Divider()
+                    Button(role: .destructive) {
+                        saved.removeAll { $0.id == item.id }
+                        LabSaved.store(saved, to: storeKey)
+                    } label: {
+                        Label("Delete Clip", systemImage: "trash")
+                    }
+                } preview: {
+                    LabSavedTextPreview(title: "Saved Clip",
+                                        text: item.text, symbol: "doc.on.clipboard")
+                }
             }
             if saved.isEmpty { LabHint(text: "No saved clips yet.") }
         }
@@ -136,6 +159,28 @@ struct LabNotepadPanel: View {
                 .padding(13)
                 .background(Color(uiColor: .tertiarySystemBackground),
                             in: RoundedRectangle(cornerRadius: 13))
+                .contextMenu {
+                    Button {
+                        insertText(note.text)
+                    } label: {
+                        Label("Insert Note", systemImage: "text.insert")
+                    }
+                    Button {
+                        draft = note.text
+                    } label: {
+                        Label("Edit Note", systemImage: "square.and.pencil")
+                    }
+                    Divider()
+                    Button(role: .destructive) {
+                        saved.removeAll { $0.id == note.id }
+                        LabSaved.store(saved, to: key)
+                    } label: {
+                        Label("Delete Note", systemImage: "trash")
+                    }
+                } preview: {
+                    LabSavedTextPreview(title: "Private Note",
+                                        text: note.text, symbol: "note.text")
+                }
             }
         }
         .onAppear { saved = LabSaved.load(key) }
@@ -204,6 +249,23 @@ struct LabSnippetsPanel: View {
                 .padding(12)
                 .background(Color(uiColor: .tertiarySystemBackground),
                             in: RoundedRectangle(cornerRadius: 12))
+                .contextMenu {
+                    Button {
+                        insertText(item.text)
+                    } label: {
+                        Label("Insert Snippet", systemImage: "text.insert")
+                    }
+                    Divider()
+                    Button(role: .destructive) {
+                        saved.removeAll { $0.id == item.id }
+                        LabSaved.store(saved, to: key)
+                    } label: {
+                        Label("Delete Snippet", systemImage: "trash")
+                    }
+                } preview: {
+                    LabSavedTextPreview(title: "Text Snippet",
+                                        text: item.text, symbol: "text.bubble")
+                }
             }
         }
         .onAppear { saved = LabSaved.load(key) }
