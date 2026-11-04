@@ -1,0 +1,53 @@
+name: Keyboard Compatibility Build (macOS 26)
+
+on:
+  push:
+    branches:
+      - feature/native-glass-controls-v08
+    paths:
+      - "TrialApp/**"
+      - "TrialKeyboard.yml"
+      - "Package.swift"
+      - ".github/workflows/keyboard-macos26-compile.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-compat:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+      - name: Static regression checks
+        run: python3 TrialApp/Tests/verify_keyboard_tool_inputs.py
+      - name: Generate project
+        run: |
+          brew install xcodegen
+          xcodegen generate --spec TrialKeyboard.yml
+      - name: Compile keyboard extension and host app
+        shell: bash
+        run: |
+          set -o pipefail
+          xcodebuild -project TrialKeyboard.xcodeproj \
+            -scheme TrialKeyboard \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$PWD/.build/CompatData" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build 2>&1 | tee compat-build.log
+      - name: Confirm keyboard extension in app
+        run: test -d .build/CompatData/Build/Products/Release-iphoneos/TrialKeyboard.app/PlugIns/TrialKeyboardExtension.appex
+      - name: Retain diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos26-compat-errors
+          path: compat-build.log
+          if-no-files-found: ignore
