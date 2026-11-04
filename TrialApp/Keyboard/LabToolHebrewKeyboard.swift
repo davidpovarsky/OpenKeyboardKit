@@ -1,0 +1,118 @@
+import SwiftUI
+
+/// A native SwiftUI Hebrew layout for editing fields inside a tool.
+/// It is NOT the host application's system keyboard, and never writes to the host.
+struct LabToolHebrewKeyboard: View {
+    @ObservedObject var router: LabInputRouter
+    let useEnglish: () -> Void
+    let openTools: () -> Void
+    let returnToTyping: () -> Void
+
+    @State private var symbols = false
+    @AppStorage("keyboard.lab.theme") private var theme = LabTheme.classic.rawValue
+
+    private var rows: [[String]] {
+        if symbols {
+            return [
+                ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
+                ["@", "#", "₪", "%", "&", "*", "-", "+", "(", ")"],
+                [".", ",", ":", ";", "!", "?", "/", "'", "״"]
+            ]
+        }
+        return [
+            ["פ", "ם", "ן", "ו", "ט", "א", "ר", "ק", "׳", "/"],
+            ["ף", "ך", "ל", "ח", "י", "ע", "כ", "ג", "ד", "ש"],
+            ["ץ", "ת", "צ", "מ", "נ", "ה", "ב", "ס", "ז"]
+        ]
+    }
+
+    var body: some View {
+        VStack(spacing: 5) {
+            HStack(spacing: 7) {
+                Button(action: openTools) {
+                    Label("Tools", systemImage: "square.grid.2x2")
+                }
+                Spacer()
+                Label("עברית", systemImage: "character.cursor.ibeam")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button(action: useEnglish) {
+                    Label("English", systemImage: "globe")
+                }
+                Button(action: returnToTyping) {
+                    Label("Done", systemImage: "checkmark.circle")
+                }
+            }
+            .font(.system(size: 11, weight: .medium))
+            .labelStyle(.titleAndIcon)
+            .buttonStyle(.plain)
+            .frame(height: 38)
+            .padding(.horizontal, 9)
+
+            ForEach(rows.indices, id: \.self) { index in
+                HStack(spacing: 5) {
+                    ForEach(rows[index], id: \.self) { char in
+                        Button { router.insert(char) } label: {
+                            Text(char)
+                                .font(.system(size: 18, weight: .regular))
+                                .foregroundStyle(.primary)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 42)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                        .fill(Color(uiColor: .tertiarySystemBackground))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    if index == 2 {
+                        Button { router.deletePrevious() } label: {
+                            Image(systemName: "delete.left")
+                                .font(.system(size: 20))
+                                .foregroundStyle(.primary)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 42)
+                                .background(Color.gray.opacity(0.23),
+                                            in: RoundedRectangle(cornerRadius: 7))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .environment(\.layoutDirection, .rightToLeft)
+            }
+
+            HStack(spacing: 5) {
+                Button { symbols.toggle() } label: {
+                    Text(symbols ? "אבג" : "123").frame(width: 58)
+                }
+                Button(action: useEnglish) {
+                    Image(systemName: "globe").frame(width: 53)
+                }
+                Button { router.insert(" ") } label: {
+                    Text("רווח").frame(maxWidth: .infinity)
+                }
+                Button { router.returnKey() } label: {
+                    Image(systemName: "return").frame(width: 74)
+                }
+            }
+            .font(.system(size: 14, weight: .medium))
+            .foregroundStyle(.primary)
+            .buttonStyle(.plain)
+            .frame(height: 43)
+            .padding(.horizontal, 7)
+            .background {
+                HStack(spacing: 5) {
+                    RoundedRectangle(cornerRadius: 7).fill(.gray.opacity(0.17)).frame(width: 65)
+                    RoundedRectangle(cornerRadius: 7).fill(.gray.opacity(0.17)).frame(width: 60)
+                    RoundedRectangle(cornerRadius: 7).fill(Color(uiColor: .tertiarySystemBackground))
+                    RoundedRectangle(cornerRadius: 7).fill(.gray.opacity(0.17)).frame(width: 80)
+                }
+                .padding(.horizontal, 7)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.bottom, 6)
+        .background(LabDesign.canvas)
+    }
+}
