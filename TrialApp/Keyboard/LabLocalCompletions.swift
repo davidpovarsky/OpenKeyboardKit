@@ -57,16 +57,16 @@ final class LabLocalCompletions: ObservableObject {
         }
 
         let fallback = hebrew ? fallbackHebrew : fallbackEnglish
+        let normalizedWord = word.lowercased()
         let candidates = fetched + fallback.filter {
-            $0.localizedCaseInsensitiveHasPrefix(word)
+            $0.lowercased().hasPrefix(normalizedWord)
         }
         var unique = Set<String>()
         let filtered = candidates.filter { candidate in
-            let folded = candidate.folding(options: [.caseInsensitive], locale: nil)
-            let original = word.folding(options: [.caseInsensitive], locale: nil)
-            return folded != original &&
-                candidate.localizedCaseInsensitiveHasPrefix(word) &&
-                unique.insert(folded).inserted
+            let normalizedCandidate = candidate.lowercased()
+            return normalizedCandidate != normalizedWord &&
+                normalizedCandidate.hasPrefix(normalizedWord) &&
+                unique.insert(normalizedCandidate).inserted
         }
         prefix = word
         suggestions = Array(filtered.prefix(3))

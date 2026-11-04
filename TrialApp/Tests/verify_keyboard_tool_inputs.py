@@ -108,6 +108,11 @@ checks = {
             ["UITextChecker()", "completions(forPartialWordRange:",
              "fallbackEnglish", "fallbackHebrew", "static func partialWord("])
         and "URLSession" not in read("LabLocalCompletions.swift"),
+    "suggestion prefix checks only use supported Swift String APIs":
+        "localizedCaseInsensitiveHasPrefix" not in controller
+        and "localizedCaseInsensitiveHasPrefix" not in read("LabLocalCompletions.swift")
+        and ".folding(options:" not in read("LabLocalCompletions.swift")
+        and "lowercased().hasPrefix(" in controller,
     "suggestions replace current word safely in host":
         all(x in controller for x in
             ["private func applyCompletion(", "labInput.isHostTarget",

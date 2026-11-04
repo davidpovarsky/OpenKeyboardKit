@@ -29,7 +29,7 @@ final class KeyboardViewController: KeyboardInputViewController {
         // Never delete host text based on stale suggestions or tool focus.
         let fragment = completions.prefix
         guard labInput.isHostTarget, fragment.count >= 2,
-              value.localizedCaseInsensitiveHasPrefix(fragment),
+              value.lowercased().hasPrefix(fragment.lowercased()),
               (textDocumentProxy.documentContextBeforeInput ?? "").hasSuffix(fragment),
               (textDocumentProxy.selectedText ?? "").isEmpty else { return }
         for _ in fragment {
