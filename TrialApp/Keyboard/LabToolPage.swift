@@ -261,6 +261,23 @@ struct LabSearchPanel: View {
                                         in: RoundedRectangle(cornerRadius: 13))
                         }
                         .buttonStyle(.plain)
+                        .contextMenu {
+                            Button {
+                                insertText(result.insertion)
+                            } label: {
+                                Label("Insert into Document", systemImage: "text.insert")
+                            }
+                            Button {
+                                if fullAccess {
+                                    UIPasteboard.general.string = result.insertion
+                                }
+                            } label: {
+                                Label("Copy Result", systemImage: "doc.on.doc")
+                            }
+                            .disabled(!fullAccess)
+                        } preview: {
+                            LabResultPreview(result: result)
+                        }
                     }
                     if model.results.isEmpty && !model.loading {
                         Text("Enter a query on the keyboard below, then tap Search.")
