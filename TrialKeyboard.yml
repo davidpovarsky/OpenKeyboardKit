@@ -21,8 +21,8 @@ targets:
       properties:
         CFBundleDisplayName: "Keyboard Lab"
         CFBundleName: TrialKeyboard
-        CFBundleShortVersionString: "0.2.1"
-        CFBundleVersion: "2"
+        CFBundleShortVersionString: "0.3.0"
+        CFBundleVersion: "3"
         LSRequiresIPhoneOS: true
         UILaunchScreen: {}
         UIRequiresFullScreen: false
@@ -55,8 +55,8 @@ targets:
       properties:
         CFBundleDisplayName: "Keyboard Lab"
         CFBundleName: TrialKeyboardExtension
-        CFBundleShortVersionString: "0.2.1"
-        CFBundleVersion: "2"
+        CFBundleShortVersionString: "0.3.0"
+        CFBundleVersion: "3"
         NSExtension:
           NSExtensionPointIdentifier: "com.apple.keyboard-service"
           NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).KeyboardViewController"

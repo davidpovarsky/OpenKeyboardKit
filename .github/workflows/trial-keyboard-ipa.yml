@@ -6,6 +6,7 @@ on:
       - trial/ipad-keyboard
       - feature/native-js-script-lab
       - fix/keyboard-bottom-docking
+      - feature/keyboard-lab-suite
     paths:
       - 'TrialApp/**'
       - 'TrialKeyboard.yml'
@@ -67,7 +68,7 @@ jobs:
           assert keyboard["NSExtension"]["NSExtensionPointIdentifier"] == "com.apple.keyboard-service"
           assert keyboard["NSExtension"]["NSExtensionPrincipalClass"] == "TrialKeyboardExtension.KeyboardViewController"
           assert keyboard["CFBundleIdentifier"] == host["CFBundleIdentifier"] + ".extension"
-          assert keyboard["CFBundleShortVersionString"] == "0.2.1"
+          assert keyboard["CFBundleShortVersionString"] == "0.3.0"
           assert attrs["RequestsOpenAccess"] is True
           assert attrs["IsASCIICapable"] is True
           assert attrs["PrimaryLanguage"] == "en-US"
@@ -87,11 +88,11 @@ jobs:
           path: trial-build.log
           if-no-files-found: ignore
       - name: Publish Keyboard Lab v0.2.1 unsigned IPA
-        if: github.ref == 'refs/heads/fix/keyboard-bottom-docking'
+        if: github.ref == 'refs/heads/feature/keyboard-lab-suite'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: keyboard-lab-v0.2.1
-          name: "Keyboard Lab v0.2.1 - Bottom Docking"
+          tag_name: keyboard-lab-v0.3.0
+          name: "Keyboard Lab v0.3.0 - Native Tool Suite"
           target_commitish: ${{ github.sha }}
           prerelease: true
           files: TrialKeyboard-unsigned.ipa
