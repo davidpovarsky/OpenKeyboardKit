@@ -1,0 +1,52 @@
+name: Xcode 27 Compatibility Check
+
+on:
+  push:
+    branches:
+      - feature/keyboard-lab-suite
+    paths:
+      - '.github/workflows/xcode-27-compat.yml'
+      - 'TrialApp/**'
+      - 'TrialKeyboard.yml'
+      - 'Package.swift'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    runs-on: xcode-27
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift and Xcode versions
+        run: |
+          xcodebuild -version
+          swift --version
+      - name: Install project generator
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate --spec TrialKeyboard.yml
+      - name: Build current keyboard with Xcode 27
+        shell: bash
+        run: |
+          set -o pipefail
+          xcodebuild -project TrialKeyboard.xcodeproj \
+            -scheme TrialKeyboard \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$PWD/.build/Xcode27" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build 2>&1 | tee xcode27-build.log
+      - name: Verify keyboard extension
+        run: |
+          test -d .build/Xcode27/Build/Products/Release-iphoneos/TrialKeyboard.app/PlugIns/TrialKeyboardExtension.appex
+      - name: Upload build diagnostics if needed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcode27-diagnostics
+          path: xcode27-build.log
+          if-no-files-found: ignore
