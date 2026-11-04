@@ -111,7 +111,7 @@ checks = {
     "suggestions replace current word safely in host":
         all(x in controller for x in
             ["private func applyCompletion(", "labInput.isHostTarget",
-             '(textDocumentProxy.selectedText ?? \"\").isEmpty",
+             '(textDocumentProxy.selectedText ?? "").isEmpty',
              "textDocumentProxy.deleteBackward()",
              "textDocumentProxy.insertText(value)"]),
     "adaptive toolbar switches predictions and search":
