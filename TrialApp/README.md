@@ -1,4 +1,4 @@
-# Keyboard Lab v0.8.0 — Native Glass and System Controls
+# Keyboard Lab v0.9.0 — Smart Command Bar and Unified Hebrew
 
 This experimental iOS/iPadOS application includes a **real system keyboard extension** based on the MIT-licensed [OpenKeyboardKit](https://github.com/valomedia/OpenKeyboardKit). The host app and extension are implemented in Swift and SwiftUI; JavaScriptCore powers user scripts. No web-based UI is embedded.
 
@@ -9,6 +9,44 @@ This experimental iOS/iPadOS application includes a **real system keyboard exten
 3. Settings > General > Keyboard > Keyboards > Add New Keyboard > Keyboard Lab.
 4. In Notes, long-press the globe icon and select Keyboard Lab. The host app includes an embedded-extension check; it does not prove that iPadOS registered it successfully.
 5. For permitted network and clipboard features, allow Full Access in iPadOS Settings. Independently enable Network On inside Script Studio.
+
+## Universal Smart Command Bar (v0.9.0)
+
+- Persistent SF Symbol command picker and system search field above KeyboardKit
+  keys in host typing and tool workspace modes.
+- Choose any of 20 tools or built-in/custom JavaScript. The right button comes
+  from each manifest: title, icon and required input.
+- Explicit input is read using native.input() in JavaScriptCore; native.context()
+  remains the separate host document context. Legacy saved scripts still work.
+- Only running a command (Run / Return) executes scripts or network requests;
+  choosing an item in the native Menu performs no remote work.
+- HTTPS requires Full Access plus the explicit Network On switch. From cursor
+  transfers context into the command field only at the user's request.
+- Native inline results and Insert buttons, script-controlled SwiftUI form
+  inputs/actions and an optional results-only workspace mode are included.
+- Tapping any internal input in results-only mode restores the key view.
+- Hebrew and English now share the same KeyboardKit rendering engine. A Hebrew
+  alphabetic character layout is mapped onto standard keyboard items, leaving
+  system modifiers and sizing in KeyboardKit. Exact Apple Hebrew key spacing
+  must still be visually verified on an iPad.
+- Presentation height no longer depends on internal focus. The original
+  Keyboard.Toolbar and HStack remain in charge of key layout.
+
+### Custom script manifest
+
+Add the following as the FIRST line of JS source, or use Script Studio's
+native Command Bar Manifest editor:
+
+    // @keyboard-manifest {"input":{"placeholder":"Type a query","required":true},"action":{"title":"Search","symbol":"magnifyingglass"},"result":"inlineList","permissions":["network"]}
+
+Then read the text using:
+
+    const query = native.input();
+    native.ui({title:"Results",rows:[{title:query,detail:"Preview",insert:query}]});
+
+Result styles: inlineList, inlineText, workspace. Permitted declared
+permissions: network, clipboard. The manifest cannot grant those
+permissions or bypass iOS limits. The host context remains separate.
 
 ## Native iPadOS controls (v0.8.0)
 

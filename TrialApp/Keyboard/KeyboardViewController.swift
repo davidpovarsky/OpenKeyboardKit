@@ -5,6 +5,8 @@ import UIKit
 final class KeyboardViewController: KeyboardInputViewController {
     private var heightConstraint: NSLayoutConstraint?
     private var expanded = true
+    // Presentation height is independent of the active internal input field.
+    private var workspaceVisible = false
     private var lastRequestedHeight: CGFloat = 0
     private let expansionKey = "keyboard.lab.expanded"
     private let labInput = LabInputRouter()
@@ -71,14 +73,14 @@ final class KeyboardViewController: KeyboardInputViewController {
     private func requestedHeight() -> CGFloat {
         let availableHeight = availableWindowHeight()
         if UIDevice.current.userInterfaceIdiom == .pad {
-            if labInput.isEditingTools {
-                return min(800, max(570, availableHeight * 0.76))
+            if workspaceVisible {
+                return min(800, max(500, availableHeight * 0.76))
             }
             return expanded
                 ? min(620, max(340, availableHeight * 0.57))
                 : min(375, max(270, availableHeight * 0.34))
         }
-        if labInput.isEditingTools {
+        if workspaceVisible {
             return min(590, max(385, availableHeight * 0.68))
         }
         return expanded
@@ -129,6 +131,11 @@ final class KeyboardViewController: KeyboardInputViewController {
                     guard let self else { return }
                     self.expanded = newValue
                     UserDefaults.standard.set(newValue, forKey: self.expansionKey)
+                    self.updateHeight()
+                },
+                setWorkspaceVisible: { [weak self] newValue in
+                    guard let self else { return }
+                    self.workspaceVisible = newValue
                     self.updateHeight()
                 }
             )

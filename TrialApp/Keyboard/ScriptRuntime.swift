@@ -6,11 +6,15 @@ import SwiftUI
 @objc protocol KeyboardScriptChannel: JSExport {
     func send(_ message: String)
     func context() -> String
+    func input() -> String
 }
 
 final class ScriptNativeChannel: NSObject, KeyboardScriptChannel {
     weak var model: ScriptStudioModel?
     var readContext: (() -> String)?
+    var commandInput = ""
+
+    func input() -> String { commandInput }
 
     func context() -> String {
         String((readContext?() ?? "").suffix(500))
@@ -48,7 +52,9 @@ final class ScriptStudioModel: ObservableObject {
         }
     }
 
-    func run(_ script: KeyboardScript, readContext: @escaping () -> String, allowNetwork: Bool, allowClipboard: Bool, insert: @escaping (String) -> Void) {
+    func run(_ script: KeyboardScript, readContext: @escaping () -> String,
+             allowNetwork: Bool, allowClipboard: Bool,
+             insert: @escaping (String) -> Void, input: String = "") {
         currentRun = UUID()
         networkSession.invalidateAndCancel()
         networkSession = .init(configuration: .ephemeral)
@@ -62,6 +68,7 @@ final class ScriptStudioModel: ObservableObject {
         let channel = ScriptNativeChannel()
         channel.model = self
         channel.readContext = readContext
+        channel.commandInput = String(input.prefix(script.commandManifest.input.maxLength))
         bridge = channel
 
         guard let js = JSContext() else {
@@ -99,6 +106,9 @@ final class ScriptStudioModel: ObservableObject {
               },
               context: function() {
                 return __keyboardNative.context();
+              },
+              input: function() {
+                return __keyboardNative.input();
               },
               fetch: function(url, callback) {
                 var id = String(++__callbackIndex);
@@ -258,7 +268,8 @@ final class ScriptStudioModel: ObservableObject {
         let first = code.components(separatedBy: .newlines).first ?? ""
         let name = first.hasPrefix("// @title ") ? String(first.dropFirst(10)).trimmingCharacters(in: .whitespaces) : "My JS " + String(customScripts.count + 1)
         customScripts.append(
-            .init(id: UUID().uuidString, title: name, detail: "Imported from clipboard", symbol: "curlybraces", source: code, isBuiltIn: false)
+            .init(id: UUID().uuidString, title: name, detail: "Imported from clipboard", symbol: "curlybraces", source: code, isBuiltIn: false,
+                  manifest: LabCommandManifest.parse(from: code))
         )
         persist()
         status = "הסקריפט נשמר במקלדת"
@@ -282,7 +293,9 @@ final class ScriptStudioModel: ObservableObject {
     }
 
     @discardableResult
-    func saveCustom(title: String, source: String, replacing id: String? = nil) -> Bool {
+    func saveCustom(title: String, source: String, replacing id: String? = nil,
+                    symbol: String = "curlybraces",
+                    manifest: LabCommandManifest? = nil) -> Bool {
         let name = String(title.trimmingCharacters(in: .whitespacesAndNewlines).prefix(80))
         guard !name.isEmpty else { status = "יש להזין שם"; return false }
         guard !source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
@@ -292,8 +305,10 @@ final class ScriptStudioModel: ObservableObject {
         }
         let item = KeyboardScript(
             id: id ?? UUID().uuidString, title: name,
-            detail: "Custom JavaScript tool", symbol: "curlybraces",
-            source: source, isBuiltIn: false
+            detail: "Custom JavaScript tool",
+            symbol: String(symbol.prefix(70)),
+            source: source, isBuiltIn: false,
+            manifest: manifest?.validated() ?? LabCommandManifest.parse(from: source)
         )
         if let index = customScripts.firstIndex(where: { $0.id == item.id }) {
             customScripts[index] = item
@@ -303,6 +318,15 @@ final class ScriptStudioModel: ObservableObject {
         persist()
         status = "הסקריפט נשמר"
         return true
+    }
+
+    func reloadCustomScripts() {
+        if let data = UserDefaults.standard.data(forKey: Self.savedScriptsKey),
+           let saved = try? JSONDecoder().decode([KeyboardScript].self, from: data) {
+            customScripts = saved
+        } else {
+            customScripts = []
+        }
     }
 
     func delete(_ script: KeyboardScript) {

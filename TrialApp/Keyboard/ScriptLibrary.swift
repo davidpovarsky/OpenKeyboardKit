@@ -7,12 +7,25 @@ struct KeyboardScript: Identifiable, Codable {
     var symbol: String
     var source: String
     var isBuiltIn: Bool
+    var manifest: LabCommandManifest? = nil
+
+    init(id: String, title: String, detail: String, symbol: String,
+         source: String, isBuiltIn: Bool,
+         manifest: LabCommandManifest? = nil) {
+        self.id = id
+        self.title = title
+        self.detail = detail
+        self.symbol = symbol
+        self.source = source
+        self.isBuiltIn = isBuiltIn
+        self.manifest = manifest
+    }
 }
 
 enum ScriptLibrary {
     static let scripts: [KeyboardScript] = [
         .init(id: "wikipedia", title: "Wikipedia", detail: "Live Hebrew Wikipedia search", symbol: "globe", source: """
-            const ctx = native.context().trim();
+            const ctx = (native.input() || native.context()).trim();
             const query = ctx.split(/[\\n.!?]/).pop().trim().slice(-65) || "ירושלים";
             native.ui({ title: "ויקיפדיה", message: "מחפש: " + query, rows: [] });
             const url = "https://he.wikipedia.org/w/api.php?action=opensearch&format=json&limit=7&search=" + encodeURIComponent(query);
@@ -33,7 +46,7 @@ enum ScriptLibrary {
             });
             """, isBuiltIn: true),
         .init(id: "sefaria", title: "Sefaria", detail: "Fetch Hebrew sources over HTTPS", symbol: "book.closed", source: """
-            const raw = native.context().trim();
+            const raw = (native.input() || native.context()).trim();
             const match = raw.match(/[A-Za-z_]+[.]\\d+([.]\\d+)?$/);
             const ref = match ? match[0] : "Pirkei_Avot.1.1";
             native.ui({ title: "ספריא", message: "טוען " + ref + "...", rows: [] });
@@ -53,7 +66,7 @@ enum ScriptLibrary {
             });
             """, isBuiltIn: true),
         .init(id: "json", title: "Format JSON", detail: "Format JSON before the cursor", symbol: "curlybraces", source: """
-            const input = native.context().trim();
+            const input = (native.input() || native.context()).trim();
             try {
               const parsed = JSON.parse(input || '{"message":"Hello from JavaScriptCore","enabled":true,"count":3}');
               const formatted = JSON.stringify(parsed, null, 2);
@@ -67,7 +80,7 @@ enum ScriptLibrary {
             }
             """, isBuiltIn: true),
         .init(id: "sefaria-search", title: "Sefaria Search", detail: "Search sources via HTTPS POST", symbol: "books.vertical", source: """
-            const context = native.context().trim();
+            const context = (native.input() || native.context()).trim();
             const query = context.split(/[\\n.!?]/).pop().trim().slice(-70) || "שמע ישראל";
             native.ui({ title: "ספריא · חיפוש", message: "מחפש: " + query, rows: [] });
             native.request({

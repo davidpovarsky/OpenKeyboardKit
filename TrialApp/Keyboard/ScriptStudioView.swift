@@ -13,6 +13,13 @@ struct ScriptStudioView: View {
     @State private var editing = false
     @State private var codeTitle = ""
     @State private var codeSource = ""
+    @State private var commandToolSymbol = "curlybraces"
+    @State private var commandPlaceholder = "Enter text"
+    @State private var commandActionTitle = "Run"
+    @State private var commandActionSymbol = "play.fill"
+    @State private var commandNeedsInput = false
+    @State private var commandNeedsNetwork = false
+    @State private var commandResultStyle: LabCommandManifest.ResultStyle = .inlineList
     @State private var editingID: String?
     @State private var currentScript: KeyboardScript?
     @State private var fieldValues: [String: String] = [:]
@@ -157,9 +164,49 @@ struct ScriptStudioView: View {
                              text: $codeSource, multiline: true,
                              minHeight: 115)
 
+            GroupBox {
+                VStack(alignment: .leading, spacing: 10) {
+                    LabEditableField(
+                        id: "studio.command.placeholder", placeholder: "Command input hint",
+                        text: $commandPlaceholder
+                    )
+                    HStack(spacing: 8) {
+                        LabEditableField(
+                            id: "studio.command.actionTitle",
+                            placeholder: "Button label", text: $commandActionTitle
+                        )
+                        LabEditableField(
+                            id: "studio.command.actionSymbol",
+                            placeholder: "SF Symbol: magnifyingglass",
+                            text: $commandActionSymbol
+                        )
+                        LabEditableField(
+                            id: "studio.command.toolSymbol",
+                            placeholder: "Tool icon SF Symbol",
+                            text: $commandToolSymbol
+                        )
+                    }
+                    Toggle("Require command input", isOn: $commandNeedsInput)
+                    Toggle("This script needs network access", isOn: $commandNeedsNetwork)
+                    Picker("Results", selection: $commandResultStyle) {
+                        Text("List").tag(LabCommandManifest.ResultStyle.inlineList)
+                        Text("Text").tag(LabCommandManifest.ResultStyle.inlineText)
+                        Text("Full workspace").tag(LabCommandManifest.ResultStyle.workspace)
+                    }
+                    .pickerStyle(.segmented)
+                    Text("The icon and button title appear in the universal command bar. Scripts receive explicit input with native.input().")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .font(.system(size: 12))
+            } label: {
+                Label("Command Bar Manifest", systemImage: "slider.horizontal.3")
+                    .font(.subheadline.weight(.semibold))
+            }
+
             HStack(spacing: 8) {
                 Button("Save") {
-                    if model.saveCustom(title: codeTitle, source: codeSource, replacing: editingID) {
+                    if saveEditorScript() {
                         editing = false
                         currentScript = nil
                     }
@@ -167,7 +214,7 @@ struct ScriptStudioView: View {
                 .buttonStyle(.borderedProminent)
 
                 Button("Save & Run") {
-                    if model.saveCustom(title: codeTitle, source: codeSource, replacing: editingID) {
+                    if saveEditorScript() {
                         editing = false
                         if let saved = model.customScripts.first(where: {
                             $0.id == (editingID ?? "")
@@ -285,6 +332,15 @@ struct ScriptStudioView: View {
         editing = true
         editingID = script?.isBuiltIn == false ? script?.id : nil
         codeTitle = script?.title ?? "My Script"
+        let manifest = script?.commandManifest
+            ?? LabCommandManifest.defaults(for: "custom", title: "My Script")
+        commandToolSymbol = script?.symbol ?? "curlybraces"
+        commandPlaceholder = manifest.input.placeholder
+        commandActionTitle = manifest.action.title
+        commandActionSymbol = manifest.action.symbol
+        commandNeedsInput = manifest.input.required
+        commandNeedsNetwork = manifest.permissions.contains("network")
+        commandResultStyle = manifest.result
         codeSource = script?.source ?? """
             native.ui({
               title: "Hello",
@@ -296,6 +352,27 @@ struct ScriptStudioView: View {
               if (id === "greet") native.insert("Hello " + (values.name || "there"));
             };
             """
+    }
+
+    private func saveEditorScript() -> Bool {
+        let manifest = LabCommandManifest(
+            input: .init(
+                placeholder: commandPlaceholder,
+                required: commandNeedsInput,
+                maxLength: 4000
+            ),
+            action: .init(
+                title: commandActionTitle,
+                symbol: commandActionSymbol
+            ),
+            result: commandResultStyle,
+            permissions: commandNeedsNetwork ? ["network"] : []
+        )
+        return model.saveCustom(
+            title: codeTitle, source: codeSource, replacing: editingID,
+            symbol: commandToolSymbol.isEmpty ? "curlybraces" : commandToolSymbol,
+            manifest: manifest
+        )
     }
 
     private func run(_ script: KeyboardScript) {

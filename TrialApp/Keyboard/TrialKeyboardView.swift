@@ -19,20 +19,23 @@ struct TrialKeyboardView: View {
     let fullAccess: Bool
     @ObservedObject var inputRouter: LabInputRouter
     let setExpanded: (Bool) -> Void
+    let setWorkspaceVisible: (Bool) -> Void
 
     @EnvironmentObject private var keyboardContext: KeyboardContext
     @State private var screen: LabScreen = .typing
-    @State private var useHebrewInTools = false
+    @AppStorage("keyboard.lab.hebrew.enabled") private var useHebrew = false
+    @State private var showsKeys = true
+    @State private var scriptReloadToken = 0
     @AppStorage("keyboard.lab.expanded") private var expanded = true
     @AppStorage("keyboard.lab.theme") private var themeName = LabTheme.classic.rawValue
 
     var body: some View {
         VStack(spacing: 0) {
             if screen == .typing {
-                if expanded {
-                    LabQuickAccess(open: openTool, showAll: openLibrary)
-                    Spacer(minLength: 0)
-                } else {
+                if showsKeys {
+                    if expanded {
+                        LabQuickAccess(open: openTool, showAll: openLibrary)
+                    }
                     Spacer(minLength: 0)
                 }
             } else {
@@ -58,21 +61,22 @@ struct TrialKeyboardView: View {
                 LabInputAccessory()
             }
 
-            // Always keep real input keys under the tool workspace.
-            // Standard OpenKeyboardKit is retained for English and host typing.
-            // Hebrew is a native extension-owned layout, also routed to tool fields.
-            if screen != .typing && useHebrewInTools {
-                LabToolHebrewKeyboard(
-                    router: inputRouter,
-                    useEnglish: { useHebrewInTools = false },
-                    openTools: openLibrary,
-                    returnToTyping: returnToTyping,
-                    insertHost: insertText,
-                    deleteHost: deleteHost,
-                    returnHost: { insertText("\n") }
-                )
-                .fixedSize(horizontal: false, vertical: true)
-            } else {
+            // This command bar is OUTSIDE Keyboard.Toolbar so it cannot
+            // change KeyboardKit's intrinsic key layout or input view host.
+            LabSmartCommandBar(
+                insertText: insertText,
+                readContext: readContext,
+                fullAccess: fullAccess,
+                isKeyboardVisible: showsKeys,
+                setKeyboardVisible: updateKeyVisibility,
+                openTool: openTool,
+                scriptReloadToken: scriptReloadToken
+            )
+            .fixedSize(horizontal: false, vertical: true)
+
+            // Keep key rendering bottom-pinned. A full workspace hides keys
+            // intentionally and restores them on focus of any internal field.
+            if showsKeys {
                 standardKeyboard
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -81,13 +85,34 @@ struct TrialKeyboardView: View {
         .background(LabDesign.canvas)
         .environmentObject(inputRouter)
         .onAppear {
-            inputRouter.setToolMode(screen != .typing)
+            inputRouter.setToolMode(true)
             setExpanded(expanded)
+            setWorkspaceVisible(screen != .typing || !showsKeys)
         }
         .onChange(of: screen) { newValue in
-            let toolsActive = newValue != .typing
-            inputRouter.setToolMode(toolsActive)
-            setExpanded(expanded) // Recompute height for typing vs tool modes
+            inputRouter.setToolMode(true)
+            setWorkspaceVisible(newValue != .typing || !showsKeys)
+            if newValue != .detail(.scripts) {
+                scriptReloadToken += 1
+            }
+        }
+        .onChange(of: showsKeys) { visible in
+            setWorkspaceVisible(screen != .typing || !visible)
+        }
+        .onChange(of: inputRouter.activeKey) { active in
+            if active != nil && !showsKeys {
+                showsKeys = true
+            }
+        }
+    }
+
+    private func updateKeyVisibility(_ visible: Bool) {
+        if visible == showsKeys { return }
+        if !visible {
+            inputRouter.activateHost()
+        }
+        withAnimation(.smooth(duration: 0.2)) {
+            showsKeys = visible
         }
     }
 
@@ -98,6 +123,7 @@ struct TrialKeyboardView: View {
 
     private func returnToTyping() {
         inputRouter.unfocus()
+        showsKeys = true
         screen = .typing
     }
 
@@ -108,6 +134,7 @@ struct TrialKeyboardView: View {
     }
 
     private func changeHeight() {
+        if !showsKeys { showsKeys = true }
         expanded.toggle()
         setExpanded(expanded)
     }
@@ -130,7 +157,9 @@ struct TrialKeyboardView: View {
 
     private var standardKeyboard: some View {
         KeyboardView(
-            layout: KeyboardLayout.standard(for: keyboardContext),
+            layout: useHebrew
+                ? LabHebrewLayout.make(for: keyboardContext)
+                : KeyboardLayout.standard(for: keyboardContext),
             state: state,
             services: services,
             buttonContent: { $0.view },
@@ -149,8 +178,8 @@ struct TrialKeyboardView: View {
                         }
                         Spacer(minLength: 4)
                         if screen != .typing {
-                            toolButton("עברית", symbol: "globe") {
-                                useHebrewInTools = true
+                            toolButton(useHebrew ? "English" : "עברית", symbol: "globe") {
+                                useHebrew.toggle()
                             }
                             toolButton("Tools", symbol: "square.grid.2x2") {
                                 openLibrary()
@@ -159,6 +188,9 @@ struct TrialKeyboardView: View {
                             LabSystemMenuButton(items: quickMenuItems)
                                 .frame(width: 43, height: 34)
                                 .accessibilityLabel("Quick actions menu")
+                            toolButton(useHebrew ? "EN" : "עברית", symbol: "globe") {
+                                useHebrew.toggle()
+                            }
                         }
                         toolButton("Scripts", symbol: "curlybraces.square") {
                             openTool(.scripts)

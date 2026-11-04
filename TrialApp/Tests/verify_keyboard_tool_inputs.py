@@ -30,10 +30,14 @@ checks = {
         ["Keyboard.Toolbar {", "HStack(spacing: 8)", "toolButton("]) and
         "LabNativeToolbar" not in shell and
         not (keyboard / "LabNativeChrome.swift").exists(),
-    "Hebrew and English modes switchable": "LabToolHebrewKeyboard" in shell and
-        "useHebrewInTools" in shell,
-    "Hebrew supports host and tool input": all(x in read("LabToolHebrewKeyboard.swift") for x in
-        ["router.isHostTarget", "insertHost(value)", "deleteHost()", "returnHost()"]),
+    "Hebrew and English use one KeyboardKit key renderer":
+        "LabHebrewLayout.make(for: keyboardContext)" in shell and
+        "KeyboardView(" in shell and "useHebrew.toggle()" in shell and
+        "LabToolHebrewKeyboard(" not in shell,
+    "Hebrew has the mapped Apple-style rows and protected special keys":
+        all(x in read("LabHebrewLayout.swift") for x in
+            ['["/", "׳", "ק", "ר", "א"', '["ש", "ד", "ג", "כ"', '["ז", "ס", "ב", "ה"',
+             "KeyboardLayout.standard(for: context)", ".character(glyphs[offset])"]),
     "native themed tool launcher": all(x in read("LabToolHome.swift") for x in
         ["LabAnimatedTile", "LabSystemSearchField", "LabGlassHeader", ".introspect("]),
     "glass UI and Pow effects": all(x in read("LabDesign.swift") for x in
@@ -69,6 +73,49 @@ checks = {
     ),
     "native GIF previews": all(x in read("LabGIFPanel.swift") for x in
         [".contextMenu {", "preview: {", "Copy GIF", "Copy Source Link"]),
+    "smart command bar is persistent and outside keyboard toolbar": all(x in shell for x in
+        ["LabSmartCommandBar(", "standardKeyboard", "Keyboard.Toolbar {",
+         "if showsKeys {", "setWorkspaceVisible("]) and
+        shell.index("LabSmartCommandBar(") < shell.index("standardKeyboard\n                    .fixedSize"),
+    "native command chooser includes tools and scripts": all(x in read("LabSmartCommandBar.swift") for x in
+        ["Menu {", "ForEach(LabTool.allCases)", "ForEach(availableScripts)",
+         "ScriptLibrary.scripts + scriptRunner.customScripts", "recentIDs"]),
+    "command field uses existing input router": all(x in read("LabSmartCommandBar.swift") for x in
+        ['LabSystemSearchField(', 'id: inputID', 'router.focus(inputID, binding: $query',
+         'router.activateHost()', 'onSubmit: run']),
+    "command results remain inside keyboard": all(x in read("LabSmartCommandBar.swift") for x in
+        ["private var resultPanel:", "resultRow(", "LabEditableField(",
+         "scriptRunner.fireAction(", "insertText(insertion)"]),
+    "command bar supports results-only workspace": all(x in read("TrialKeyboardView.swift") for x in
+        ["setWorkspaceVisible: (Bool) -> Void", "showsKeys = true", "if showsKeys {"]) and
+        "setKeyboardVisible(false)" in read("LabSmartCommandBar.swift"),
+    "height no longer jumps when typing into command field":
+        "if workspaceVisible {" in controller and
+        "if labInput.isEditingTools {" not in controller,
+    "script editor exposes manifest settings natively":
+        all(x in read("ScriptStudioView.swift") for x in [
+            "Command Bar Manifest", "commandActionSymbol", "commandPlaceholder",
+            "commandToolSymbol", "commandNeedsNetwork", "commandResultStyle",
+            "manifest: manifest"
+        ]),
+    "command results honor inlineText style":
+        "if selectedScript?.commandManifest.result == .inlineText" in read("LabSmartCommandBar.swift"),
+    "manifest parser supports old scripts and custom actions":
+        all(x in read("LabCommandManifest.swift") for x in
+            ["struct LabCommandManifest: Codable", "static func defaults(",
+             "static func parse(from source:", "func validated()", "decodeIfPresent"]),
+    "JavaScriptCore receives explicit command input separately from host":
+        all(x in read("ScriptRuntime.swift") for x in
+            ["func input() -> String", "channel.commandInput", "return __keyboardNative.input();",
+             "input: String = \"\""]) and
+        "native.input() || native.context()" in read("ScriptLibrary.swift"),
+    "network access is explicit and gated at run":
+        "if manifest.permissions.contains(\"network\") && (!fullAccess || !allowNetwork)" in read("LabSmartCommandBar.swift")
+        and "allowNetwork: allowNetwork && fullAccess" in read("LabSmartCommandBar.swift"),
+    "no script is executed by selecting a menu item":
+        "private func select(_ id:" in read("LabSmartCommandBar.swift")
+        and "private func run()" in read("LabSmartCommandBar.swift")
+        and "scriptRunner.run(" in read("LabSmartCommandBar.swift"),
     "system context menu previews": all(x in read("LabNativePreviews.swift") for x in
         ["struct LabToolPreview", "struct LabScriptPreview", "struct LabResultPreview", "struct LabSavedTextPreview"]),
     "native long press menu wiring": all(".contextMenu {" in read(n) and "preview: {" in read(n) for n in
