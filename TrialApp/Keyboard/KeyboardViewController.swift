@@ -7,6 +7,7 @@ final class KeyboardViewController: KeyboardInputViewController {
     private var expanded = true
     private var lastRequestedHeight: CGFloat = 0
     private let expansionKey = "keyboard.lab.expanded"
+    private let labInput = LabInputRouter()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -16,6 +17,11 @@ final class KeyboardViewController: KeyboardInputViewController {
         // through the globe key in other apps.
         expanded = UserDefaults.standard.object(forKey: expansionKey) as? Bool ?? true
         setup(for: .trialKeyboard) { _ in }
+
+        // Keep the existing KeyboardKit behavior outside tool mode.
+        let handler = LabRoutedActionHandler(controller: self)
+        handler.labInput = labInput
+        services.actionHandler = handler
 
         // One explicit height constraint, adjustable without rebuilding keys.
         let constraint = view.heightAnchor.constraint(equalToConstant: requestedHeight())
@@ -65,9 +71,15 @@ final class KeyboardViewController: KeyboardInputViewController {
     private func requestedHeight() -> CGFloat {
         let availableHeight = availableWindowHeight()
         if UIDevice.current.userInterfaceIdiom == .pad {
+            if labInput.isEditingTools {
+                return min(800, max(570, availableHeight * 0.76))
+            }
             return expanded
                 ? min(620, max(340, availableHeight * 0.57))
                 : min(375, max(270, availableHeight * 0.34))
+        }
+        if labInput.isEditingTools {
+            return min(590, max(385, availableHeight * 0.68))
         }
         return expanded
             ? min(470, max(315, availableHeight * 0.52))
@@ -95,6 +107,7 @@ final class KeyboardViewController: KeyboardInputViewController {
                     self?.textDocumentProxy.documentContextBeforeInput ?? ""
                 },
                 fullAccess: self?.hasFullAccess ?? false,
+                inputRouter: self?.labInput ?? LabInputRouter(),
                 setExpanded: { [weak self] newValue in
                     guard let self else { return }
                     self.expanded = newValue
