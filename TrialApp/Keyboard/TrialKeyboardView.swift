@@ -1,5 +1,6 @@
 import OpenKeyboardKit
 import SwiftUI
+import UIKit
 
 /// One persistent keyboard, with changing native SwiftUI workspaces ABOVE it.
 /// In particular, tool UI never replaces the actual keyboard.
@@ -174,16 +175,10 @@ struct TrialKeyboardView: View {
 
     private func toolButton(_ title: String, symbol: String,
                             action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Label(title, systemImage: symbol)
-                .font(.system(size: 12, weight: .medium))
-                .labelStyle(.titleAndIcon)
-                .foregroundStyle(.primary)
-                .padding(.vertical, 7)
-                .padding(.horizontal, 4)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(title)
+        // Preserve the proven Keyboard.Toolbar / HStack layout from v0.7.1.
+        // Only the button style is upgraded, not the toolbar ownership.
+        LabGlassCommand(title: title, symbol: symbol,
+                        compact: UIDevice.current.userInterfaceIdiom != .pad,
+                        action: action)
     }
 }

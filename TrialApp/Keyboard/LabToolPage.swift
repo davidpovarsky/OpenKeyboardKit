@@ -16,40 +16,10 @@ struct LabToolPage: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 11) {
-                Button(action: close) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .semibold))
-                        .frame(width: 40, height: 38)
-                }
-                .buttonStyle(.plain)
-                .labGlass(12)
-                .accessibilityLabel("Back to tools")
-
-                Image(systemName: tool.symbol)
-                    .font(.system(size: 22, weight: .medium))
-                    .foregroundStyle(tool.tint)
-                    .frame(width: 37, height: 38)
-                    .background(tool.bg, in: RoundedRectangle(cornerRadius: 12))
-                    .labGlass(12)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(tool.title).font(.headline)
-                    Text(tool.detail).font(.caption2).foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-                Spacer()
-                Button(action: returnToKeyboard) {
-                    Image(systemName: "keyboard")
-                        .font(.system(size: 18))
-                        .frame(width: 37, height: 38)
-                }
-                .buttonStyle(.plain)
-                .labGlass(12)
-                .accessibilityLabel("Return to keyboard")
-            }
-            .padding(.horizontal, 14)
-            .frame(height: 60)
+            LabGlassHeader(
+                title: tool.title, subtitle: tool.detail, symbol: tool.symbol,
+                back: close, close: returnToKeyboard
+            )
             .background(.ultraThinMaterial)
 
             Divider().opacity(0.35)
@@ -124,6 +94,8 @@ struct LabToolPage: View {
             LabProfilesPanel()
         case .layouts:
             LabLayoutsPanel()
+        case .quickForm:
+            LabQuickFormPanel(insertText: insertText, fullAccess: fullAccess)
         case .handwriting, .scripts, .gif:
             EmptyView()
         }
@@ -180,22 +152,14 @@ struct LabSearchPanel: View {
 
     var body: some View {
         VStack(spacing: 9) {
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                LabEditableField(id: "search." + tool.rawValue,
-                                 placeholder: "Search " + tool.title,
-                                 text: $query, minHeight: 43,
-                                 submit: runSearch)
-                if !query.isEmpty {
-                    Button { query = ""; model.cancel() } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 13)
-            .padding(.top, 7)
+            LabSystemSearchField(
+                id: "search." + tool.rawValue,
+                text: $query,
+                placeholder: "Search " + tool.title,
+                onSubmit: runSearch
+            )
+            .padding(.horizontal, 7)
+            .padding(.top, 6)
 
             HStack(spacing: 10) {
                 Button("From cursor") {

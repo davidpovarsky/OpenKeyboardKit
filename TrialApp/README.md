@@ -1,4 +1,4 @@
-# Keyboard Lab v0.7.1 — Keyboard Stability Hotfix
+# Keyboard Lab v0.8.0 — Native Glass and System Controls
 
 This experimental iOS/iPadOS application includes a **real system keyboard extension** based on the MIT-licensed [OpenKeyboardKit](https://github.com/valomedia/OpenKeyboardKit). The host app and extension are implemented in Swift and SwiftUI; JavaScriptCore powers user scripts. No web-based UI is embedded.
 
@@ -9,6 +9,33 @@ This experimental iOS/iPadOS application includes a **real system keyboard exten
 3. Settings > General > Keyboard > Keyboards > Add New Keyboard > Keyboard Lab.
 4. In Notes, long-press the globe icon and select Keyboard Lab. The host app includes an embedded-extension check; it does not prove that iPadOS registered it successfully.
 5. For permitted network and clipboard features, allow Full Access in iPadOS Settings. Independently enable Network On inside Script Studio.
+
+## Native iPadOS controls (v0.8.0)
+
+Based on v0.7.1, confirmed working on the user's iPad. We deliberately
+do not nest a second UIToolbar in OpenKeyboardKit's keyboard toolbar.
+
+- The stable Keyboard.Toolbar / HStack layout remains unchanged; each command
+  is now a native SwiftUI Glass button on iOS 26+, with a bordered fallback on
+  iOS 17-25. Fixed height protects keyboard key space.
+- Tool headers use native GlassEffectContainer with grouped Liquid Glass
+  commands instead of custom translucent toolbar backgrounds.
+- The launcher, Sefaria, Wikipedia, dictionary, and GIF searches display a
+  genuine UISearchBar. A transparent hit target activates a LabInputRouter
+  Binding while UISearchBar itself is noninteractive and cannot become
+  first responder. Only the existing extension keyboard accepts text.
+- Adds an insertable Quick Brief tool with native segmented Picker, Menu,
+  DatePicker, Toggle, Stepper, Slider, ProgressView, confirmationDialog and
+  a live result preview. Advanced buttons use glassEffectID in a
+  GlassEffectContainer.
+- Adds system context-menu preview for GIF cards and explicit Copy GIF and
+  Copy Source Link actions.
+- Existing native previews, Pow animations, hosted focus routing, languages,
+  scripts and tool features remain in place.
+
+Keyboard extensions cannot guarantee presentation of every full-screen system
+picker or share sheet. Such components remain experimental. The complete build
+must be checked on an actual iPad before replacing the stable version.
 
 ## Stability hotfix v0.7.1
 

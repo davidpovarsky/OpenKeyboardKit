@@ -19,37 +19,18 @@ struct ScriptStudioView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 10) {
-                Button(action: onClose) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .semibold))
-                        .frame(width: 36, height: 35)
-                }
-                .buttonStyle(.plain)
-                Image(systemName: "curlybraces.square.fill")
-                    .font(.title2)
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.indigo)
-                    .frame(width: 34, height: 34)
-                    .labGlass(10)
-                Text("Script Studio")
-                    .font(.system(size: 17, weight: .semibold))
-                Spacer()
-                if editing {
-                    Button("Cancel") { editing = false }
-                        .font(.caption.weight(.medium))
-                } else {
-                    Button {
-                        openEditor(nil)
-                    } label: {
-                        Label("New JS", systemImage: "plus")
-                            .font(.caption.weight(.semibold))
-                    }
-                    .buttonStyle(.bordered)
-                }
-            }
-            .padding(.horizontal, 12)
-            .frame(height: 45)
+            LabGlassHeader(
+                title: "Script Studio",
+                subtitle: "JavaScriptCore · Native SwiftUI",
+                symbol: "curlybraces.square.fill",
+                back: onClose,
+                close: {
+                    if editing { editing = false }
+                    else { openEditor(nil) }
+                },
+                closeTitle: editing ? "Cancel" : "New JS",
+                closeSymbol: editing ? "xmark" : "plus"
+            )
             .background(.ultraThinMaterial)
 
             Divider().opacity(0.35)

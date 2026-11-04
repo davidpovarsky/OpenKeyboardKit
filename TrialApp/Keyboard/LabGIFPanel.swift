@@ -90,25 +90,23 @@ struct LabGIFPanel: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            HStack {
-                Image(systemName: "sparkles.tv")
-                    .foregroundStyle(.pink)
-                LabEditableField(
-                    id: "gif.query", placeholder: "Search animated GIFs",
-                    text: $query, minHeight: 40,
-                    submit: { if ready { model.search(query) } }
+            HStack(spacing: 4) {
+                LabSystemSearchField(
+                    id: "gif.query",
+                    text: $query,
+                    placeholder: "Search animated GIFs",
+                    onSubmit: { if ready { model.search(query) } }
                 )
-                Spacer()
-                Button("Search") { if ready { model.search(query) } }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(!ready || query.isEmpty)
+                LabGlassCommand(
+                    title: "Search", symbol: "magnifyingglass",
+                    compact: true, prominent: true
+                ) {
+                    if ready { model.search(query) }
+                }
+                .disabled(!ready || query.isEmpty)
             }
-            .padding(.horizontal, 13)
-            .frame(height: 50)
-            .background(Color(uiColor: .tertiarySystemBackground),
-                        in: RoundedRectangle(cornerRadius: 14))
-            .padding(.horizontal, 13)
-            .padding(.top, 7)
+            .padding(.horizontal, 8)
+            .padding(.top, 6)
 
             if !ready {
                 Text("Enable Full Access and Network On to search the public GIF library.")
@@ -149,12 +147,48 @@ struct LabGIFPanel: View {
                                         in: RoundedRectangle(cornerRadius: 13))
                         }
                         .buttonStyle(.plain)
+                        .contextMenu {
+                            Button {
+                                copy(item)
+                            } label: {
+                                Label("Copy GIF", systemImage: "doc.on.doc")
+                            }
+                            .disabled(!ready)
+
+                            Button {
+                                if fullAccess {
+                                    UIPasteboard.general.url = item.sourceURL
+                                    status = "GIF source link copied."
+                                }
+                            } label: {
+                                Label("Copy Source Link", systemImage: "link")
+                            }
+                            .disabled(!fullAccess)
+                        } preview: {
+                            VStack(alignment: .leading, spacing: 10) {
+                                AsyncImage(url: item.previewURL) { image in
+                                    image.resizable().scaledToFit()
+                                } placeholder: {
+                                    ProgressView()
+                                }
+                                .frame(maxWidth: 280, maxHeight: 180)
+                                Text(item.title)
+                                    .font(.subheadline.weight(.semibold))
+                                    .lineLimit(3)
+                                Label("Wikimedia Commons · Check the image license",
+                                      systemImage: "info.circle")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(14)
+                            .frame(width: 295)
+                            .background(Color(uiColor: .secondarySystemBackground),
+                                        in: RoundedRectangle(cornerRadius: 18))
+                        }
                     }
                 }
                 .padding(.horizontal, 13)
             }
-
-
         }
         .background(Color(uiColor: .secondarySystemBackground))
         .onDisappear { model.cancel() }

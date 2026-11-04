@@ -9,6 +9,7 @@ on:
       - feature/keyboard-lab-suite
       - feature/keyboard-native-input-redesign
       - hotfix/keyboard-restore-v071
+      - feature/native-glass-controls-v08
     paths:
       - 'TrialApp/**'
       - 'TrialKeyboard.yml'
@@ -70,7 +71,7 @@ jobs:
           assert keyboard["NSExtension"]["NSExtensionPointIdentifier"] == "com.apple.keyboard-service"
           assert keyboard["NSExtension"]["NSExtensionPrincipalClass"] == "TrialKeyboardExtension.KeyboardViewController"
           assert keyboard["CFBundleIdentifier"] == host["CFBundleIdentifier"] + ".extension"
-          assert keyboard["CFBundleShortVersionString"] == "0.7.1"
+          assert keyboard["CFBundleShortVersionString"] == "0.8.0"
           assert attrs["RequestsOpenAccess"] is True
           assert attrs["IsASCIICapable"] is True
           assert attrs["PrimaryLanguage"] == "en-US"
@@ -90,22 +91,30 @@ jobs:
           path: trial-build.log
           if-no-files-found: ignore
       - name: Publish Keyboard Lab unsigned IPA (optional)
-        if: github.ref == 'refs/heads/hotfix/keyboard-restore-v071'
+        if: github.ref == 'refs/heads/feature/native-glass-controls-v08'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: keyboard-lab-v0.7.1
-          name: "Keyboard Lab v0.7.1 - Restore Stable Keyboard"
+          tag_name: keyboard-lab-v0.8.0
+          name: "Keyboard Lab v0.8.0 - Native Glass and System Tools"
           target_commitish: ${{ github.sha }}
           prerelease: true
           files: TrialKeyboard-unsigned.ipa
           fail_on_unmatched_files: true
           body: |
-            Emergency stability hotfix built from the known-working v0.6.1 UI.
-            - Reverts experimental UIKit UIToolbar embedded in OpenKeyboardKit keyboard toolbar.
-            - Restores the proven SwiftUI key row and system-wide input extension.
-            - Fixes input target routing: when no internal field is focused, keys write to the host app.
-            - External selection-change callbacks attempt to return focus to host; To App fallback.
-            - Hebrew tool layout can type into the host as well.
-            - Preserves existing native SwiftUI tool launcher, scripts, context previews, and persistent keys.
-            - Xcode 27 build; unsigned IPA. Sign app and embedded keyboard .appex with SideStore/AltStore.
-            - Compiles and passes static checks; actual rendering on iPad still requires device verification.
+            Keyboard Lab v0.8.0 native system controls, based on the last
+            user-confirmed working v0.7.1 keyboard and its stable key layout.
+
+            - Real SwiftUI Liquid Glass buttons and GlassEffectContainer in fixed-size
+              headers, while OpenKeyboardKit continues to own the typing key layout.
+            - System UISearchBar appearance with an extension-owned focus router:
+              tapping search never asks iPadOS for a second keyboard.
+            - Existing long-press previews for tools, scripts, saved snippets and
+              results; newly added native GIF context previews.
+            - Functional Quick Brief with native DatePicker, Picker, Toggle, Stepper,
+              Slider, ProgressView, Menu and confirmationDialog.
+            - No nested UIToolbar and no change to KeyboardKit action routing.
+            - Backwards compatible UI controls on iOS 17-25; native Liquid Glass on
+              iOS 26+ (including iPadOS 27).
+            - Static regression checks and Xcode 27 Release build. iPad rendering
+              and complex system popovers still need verification on-device.
+            - Unsigned IPA; preserve/sign the embedded .appex in SideStore.

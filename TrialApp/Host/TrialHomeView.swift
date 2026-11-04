@@ -27,6 +27,8 @@ struct TrialHomeView: View {
         .init(title: "Handwriting", subtitle: "Apple Pencil canvas", symbol: "pencil.tip", tint: .red),
         .init(title: "Photos & Files", subtitle: "Apple system pickers", symbol: "photo.on.rectangle", tint: .blue),
         .init(title: "GIF Gallery", subtitle: "Wikimedia Commons GIFs", symbol: "play.rectangle", tint: .pink),
+        .init(title: "Quick Brief", subtitle: "Native project status form",
+              symbol: "slider.horizontal.3", tint: .cyan),
         .init(title: "Script Studio", subtitle: "Native UI and JSCore", symbol: "curlybraces.square", tint: .purple)
     ]
 

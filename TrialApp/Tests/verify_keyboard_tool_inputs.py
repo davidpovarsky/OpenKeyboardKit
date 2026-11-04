@@ -35,9 +35,29 @@ checks = {
     "Hebrew supports host and tool input": all(x in read("LabToolHebrewKeyboard.swift") for x in
         ["router.isHostTarget", "insertHost(value)", "deleteHost()", "returnHost()"]),
     "native themed tool launcher": all(x in read("LabToolHome.swift") for x in
-        ["LabAnimatedTile", "LabEditableField", ".introspect("]),
+        ["LabAnimatedTile", "LabSystemSearchField", "LabGlassHeader", ".introspect("]),
     "glass UI and Pow effects": all(x in read("LabDesign.swift") for x in
         [".glassEffect(", ".changeEffect(.shine", ".sensoryFeedback(.selection", ".hoverEffect(.lift)"]),
+    "glass buttons without nested UIToolbar": all(x in read("LabSystemChrome.swift") for x in
+        ["Button(action: action)", ".buttonStyle(.glass)", ".buttonStyle(.glassProminent)",
+         "GlassEffectContainer(spacing:", "LabGlassHeader"]) and
+        "UIToolbar" not in read("TrialKeyboardView.swift"),
+    "keyboard toolbar remains KeyboardKit owned":
+        "Keyboard.Toolbar {" in shell and
+        "HStack(spacing: 8)" in shell and "LabGlassCommand(" in shell,
+    "system search field never takes first responder":
+        all(x in read("LabSystemChrome.swift") for x in
+            ["UISearchBar(frame:", "bar.isUserInteractionEnabled = false",
+             "router.focus(id, binding: $text", ".allowsHitTesting(false)"]),
+    "system search integrated in all searches":
+        "LabSystemSearchField" in read("LabToolHome.swift") and
+        "LabSystemSearchField" in read("LabToolPage.swift") and
+        "LabSystemSearchField" in read("LabGIFPanel.swift"),
+    "native quick form with functional output": all(x in read("LabQuickFormPanel.swift") for x in
+        ["Picker(", "DatePicker(", "Toggle(", "Stepper(", "Slider(",
+         "ProgressView(", ".confirmationDialog(", "insertText(brief)"]),
+    "native GIF previews": all(x in read("LabGIFPanel.swift") for x in
+        [".contextMenu {", "preview: {", "Copy GIF", "Copy Source Link"]),
     "system context menu previews": all(x in read("LabNativePreviews.swift") for x in
         ["struct LabToolPreview", "struct LabScriptPreview", "struct LabResultPreview", "struct LabSavedTextPreview"]),
     "native long press menu wiring": all(".contextMenu {" in read(n) and "preview: {" in read(n) for n in
