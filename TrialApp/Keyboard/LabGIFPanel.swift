@@ -93,10 +93,11 @@ struct LabGIFPanel: View {
             HStack {
                 Image(systemName: "sparkles.tv")
                     .foregroundStyle(.pink)
-                Text(query.isEmpty ? "Search animated GIFs..." : query)
-                    .font(.subheadline)
-                    .foregroundStyle(query.isEmpty ? .secondary : .primary)
-                    .lineLimit(1)
+                LabEditableField(
+                    id: "gif.query", placeholder: "Search animated GIFs",
+                    text: $query, minHeight: 40,
+                    submit: { if ready { model.search(query) } }
+                )
                 Spacer()
                 Button("Search") { if ready { model.search(query) } }
                     .buttonStyle(.borderedProminent)
@@ -153,11 +154,7 @@ struct LabGIFPanel: View {
                 .padding(.horizontal, 13)
             }
 
-            Divider()
-            LabInlineKeyboard(text: $query, submit: {
-                if ready { model.search(query) }
-            })
-            .fixedSize(horizontal: false, vertical: true)
+
         }
         .background(Color(uiColor: .secondarySystemBackground))
         .onDisappear { model.cancel() }
