@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftUIIntrospect
 
 /// A real native tool command center, adaptive to the area iPadOS grants.
 struct LabToolHome: View {
@@ -113,6 +114,9 @@ struct LabToolHome: View {
                 }
             }
             .scrollIndicators(.hidden)
+            .introspect(.scrollView, on: .iOS(.v17, .v18, .v26, .v27)) { scroll in
+                scroll.bounces = false
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
