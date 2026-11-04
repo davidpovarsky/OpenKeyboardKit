@@ -1,9 +1,9 @@
 import OpenKeyboardKit
 import SwiftUI
 
-/// Each mode is rendered in SwiftUI inside the *same* system keyboard extension.
-/// No WebViews, app switches, or embedded browser interfaces are used.
-private enum LabScreen {
+/// One persistent keyboard, with changing native SwiftUI workspaces ABOVE it.
+/// In particular, tool UI never replaces the actual keyboard.
+private enum LabScreen: Equatable {
     case typing
     case tools
     case detail(LabTool)
@@ -15,6 +15,7 @@ struct TrialKeyboardView: View {
     let insertText: (String) -> Void
     let readContext: () -> String
     let fullAccess: Bool
+    @ObservedObject var inputRouter: LabInputRouter
     let setExpanded: (Bool) -> Void
 
     @EnvironmentObject private var keyboardContext: KeyboardContext
@@ -24,50 +25,68 @@ struct TrialKeyboardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            switch screen {
-            case .typing:
+            if screen == .typing {
                 if expanded {
-                    LabQuickAccess(
-                        open: openTool,
-                        showAll: { screen = .tools }
-                    )
+                    LabQuickAccess(open: openTool, showAll: openLibrary)
                     Spacer(minLength: 0)
                 } else {
                     Spacer(minLength: 0)
                 }
-
-                // The actual typing keys remain pinned to the physical bottom
-                // of the extension; flexible tool area belongs ABOVE them.
-                standardKeyboard
-                    .fixedSize(horizontal: false, vertical: true)
-
-            case .tools:
-                LabToolHome(
-                    onSelect: openTool,
-                    onClose: { screen = .typing }
-                )
+            } else {
+                Group {
+                    switch screen {
+                    case .typing:
+                        EmptyView()
+                    case .tools:
+                        LabToolHome(onSelect: openTool, onClose: returnToTyping)
+                    case .detail(let tool):
+                        LabToolPage(
+                            tool: tool,
+                            close: openLibrary,
+                            returnToKeyboard: returnToTyping,
+                            insertText: insertText,
+                            readContext: readContext,
+                            fullAccess: fullAccess
+                        )
+                    }
+                }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            case .detail(let tool):
-                LabToolPage(
-                    tool: tool,
-                    close: { screen = .tools },
-                    returnToKeyboard: { screen = .typing },
-                    insertText: insertText,
-                    readContext: readContext,
-                    fullAccess: fullAccess
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                LabInputAccessory()
             }
+
+            // This exact OpenKeyboardKit view remains mounted in all screens.
+            // The router decides whether its keys edit a tool field or the host.
+            standardKeyboard
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-        .background(Color(uiColor: .secondarySystemBackground))
-        .onAppear { setExpanded(expanded) }
+        .background(LabDesign.canvas)
+        .environmentObject(inputRouter)
+        .onAppear {
+            inputRouter.setToolMode(screen != .typing)
+            setExpanded(expanded)
+        }
+        .onChange(of: screen) { newValue in
+            let toolsActive = newValue != .typing
+            inputRouter.setToolMode(toolsActive)
+            setExpanded(expanded) // Recompute height for typing vs tool modes
+        }
+    }
+
+    private func openLibrary() {
+        inputRouter.unfocus()
+        screen = .tools
+    }
+
+    private func returnToTyping() {
+        inputRouter.unfocus()
+        screen = .typing
     }
 
     private func openTool(_ tool: LabTool) {
+        inputRouter.unfocus()
         expanded = true
-        setExpanded(true)
         screen = .detail(tool)
     }
 
@@ -87,49 +106,62 @@ struct TrialKeyboardView: View {
             emojiKeyboard: { $0.view },
             toolbar: { _ in
                 Keyboard.Toolbar {
-                    HStack(spacing: 10) {
-                        toolButton("Tools", symbol: "square.grid.2x2") {
-                            expanded = true
-                            setExpanded(true)
-                            screen = .tools
+                    HStack(spacing: 8) {
+                        toolButton(
+                            screen == .typing ? "Tools" : "Keyboard",
+                            symbol: screen == .typing ? "square.grid.2x2" : "keyboard"
+                        ) {
+                            if screen == .typing { openLibrary() }
+                            else { returnToTyping() }
                         }
-                        Spacer(minLength: 6)
-                        toolButton("Search", symbol: "magnifyingglass") {
-                            openTool(.wikipedia)
+                        Spacer(minLength: 4)
+                        if screen != .typing {
+                            toolButton("Tools", symbol: "square.grid.2x2") {
+                                openLibrary()
+                            }
+                        } else {
+                            toolButton("Search", symbol: "magnifyingglass") {
+                                openTool(.wikipedia)
+                            }
+                            toolButton("Sefaria", symbol: "books.vertical") {
+                                openTool(.sefaria)
+                            }
                         }
-                        toolButton("Sefaria", symbol: "books.vertical") {
-                            openTool(.sefaria)
-                        }
-                        toolButton("JS", symbol: "curlybraces.square") {
+                        toolButton("Scripts", symbol: "curlybraces.square") {
                             openTool(.scripts)
                         }
-                        Spacer(minLength: 6)
-                        toolButton(expanded ? "Compact" : "Expand",
-                                   symbol: expanded ?
-                                     "arrow.down.right.and.arrow.up.left" :
-                                     "arrow.up.left.and.arrow.down.right") {
-                            changeHeight()
+                        Spacer(minLength: 4)
+                        if screen == .typing {
+                            toolButton(
+                                expanded ? "Compact" : "Expand",
+                                symbol: expanded ?
+                                    "arrow.down.right.and.arrow.up.left" :
+                                    "arrow.up.left.and.arrow.down.right"
+                            ) {
+                                changeHeight()
+                            }
+                        } else {
+                            toolButton("Done", symbol: "checkmark.circle") {
+                                inputRouter.unfocus()
+                            }
                         }
                     }
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, 10)
                     .frame(maxWidth: .infinity)
                 }
             }
         )
     }
 
-    private func toolButton(
-        _ title: String,
-        symbol: String,
-        action: @escaping () -> Void
-    ) -> some View {
+    private func toolButton(_ title: String, symbol: String,
+                            action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Label(title, systemImage: symbol)
                 .font(.system(size: 12, weight: .medium))
                 .labelStyle(.titleAndIcon)
                 .foregroundStyle(.primary)
                 .padding(.vertical, 7)
-                .padding(.horizontal, 6)
+                .padding(.horizontal, 4)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
