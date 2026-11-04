@@ -104,6 +104,28 @@ struct LabToolHome: View {
                         ) {
                             onSelect(tool)
                         }
+                        .contextMenu {
+                            Button {
+                                onSelect(tool)
+                            } label: {
+                                Label("Open " + tool.title, systemImage: "arrow.up.right.square")
+                            }
+
+                            Button {
+                                toggleFavorite(tool)
+                            } label: {
+                                Label(
+                                    pinned.contains(tool.rawValue)
+                                        ? "Remove from Favorites" : "Add to Favorites",
+                                    systemImage: pinned.contains(tool.rawValue)
+                                        ? "star.slash" : "star"
+                                )
+                            }
+                        } preview: {
+                            LabToolPreview(tool: tool,
+                                           isFavorite: pinned.contains(tool.rawValue))
+                        }
+                        .accessibilityHint("Long press to preview and manage favorites")
                     }
                 }
                 .padding(.horizontal, 13)
@@ -125,6 +147,24 @@ struct LabToolHome: View {
                                     LabDesign.canvas],
                            startPoint: .topLeading, endPoint: .bottomTrailing)
         }
+        .sensoryFeedback(.selection, trigger: pinnedIDs)
+    }
+
+    private func toggleFavorite(_ tool: LabTool) {
+        var ids = pinnedIDs.split(separator: ",").map(String.init)
+        if ids.contains(tool.rawValue) {
+            ids.removeAll { $0 == tool.rawValue }
+        } else {
+            // Keep the same six-shortcut limit as the Profiles panel.
+            guard ids.count < 6 else {
+                ids.removeFirst()
+                ids.append(tool.rawValue)
+                pinnedIDs = ids.joined(separator: ",")
+                return
+            }
+            ids.append(tool.rawValue)
+        }
+        pinnedIDs = ids.joined(separator: ",")
     }
 }
 
@@ -173,6 +213,21 @@ struct LabQuickAccess: View {
                         .background(tool.bg, in: RoundedRectangle(cornerRadius: 11))
                     }
                     .buttonStyle(.plain)
+                    .contextMenu {
+                        Button {
+                            open(tool)
+                        } label: {
+                            Label("Open " + tool.title, systemImage: "arrow.up.right.square")
+                        }
+                        Button {
+                            let items = pinnedIDs.split(separator: ",").map(String.init)
+                            pinnedIDs = items.filter { $0 != tool.rawValue }.joined(separator: ",")
+                        } label: {
+                            Label("Remove Favorite", systemImage: "star.slash")
+                        }
+                    } preview: {
+                        LabToolPreview(tool: tool, isFavorite: true)
+                    }
                 }
             }
             .padding(.horizontal, 14)
