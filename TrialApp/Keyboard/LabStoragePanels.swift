@@ -322,7 +322,7 @@ struct LabProfilesPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 11) {
-            LabHint(text: "Pick up to six favorite tools. They appear as quick-access shortcuts above the keyboard.", icon: "pin")
+            LabHint(text: "Choose up to six favorite tools. They appear in the Favorites view of the tool library.", icon: "pin")
             ForEach(LabTool.allCases) { tool in
                 Button {
                     if favorites.contains(tool.rawValue) {
@@ -357,17 +357,52 @@ struct LabProfilesPanel: View {
 }
 
 struct LabLayoutsPanel: View {
-    @AppStorage("keyboard.lab.expanded") private var expanded = true
+    @AppStorage("keyboard.lab.v011.largeKeys") private var largerKeys = false
+    @AppStorage("keyboard.lab.autocomplete.enabled") private var wordCompletions = true
+    @AppStorage("keyboard.lab.hebrew.enabled") private var hebrew = false
+    @AppStorage("keyboard.trial.allowNetwork") private var networkAllowed = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 13) {
-            LabHint(text: "Keyboard layout preferences apply to the extension. iPadOS may limit custom keyboard height.", icon: "keyboard")
-            Toggle("Expanded keyboard height", isOn: $expanded)
-                .padding(13)
-                .background(Color(uiColor: .tertiarySystemBackground),
-                            in: RoundedRectangle(cornerRadius: 12))
-            LabHint(text: "The English QWERTY engine is still provided by OpenKeyboardKit. Hebrew key layouts and autocorrection are a separate engine enhancement, not unlocked by this toggle.")
-            LabHint(text: "Use the globe key to choose another system keyboard. Secure fields always use an Apple keyboard.", icon: "globe")
+        VStack(alignment: .leading, spacing: 12) {
+            LabHint(
+                text: "These preferences apply directly to Keyboard Lab, including when it is selected in other apps.",
+                icon: "keyboard"
+            )
+            Toggle(isOn: $largerKeys) {
+                Label("Larger keyboard keys", systemImage: "arrow.up.left.and.arrow.down.right")
+            }
+            .padding(12)
+            .background(Color(uiColor: .tertiarySystemBackground),
+                        in: RoundedRectangle(cornerRadius: 12))
+
+            Toggle(isOn: $wordCompletions) {
+                Label("Local word completions", systemImage: "textformat.abc")
+            }
+            .padding(12)
+            .background(Color(uiColor: .tertiarySystemBackground),
+                        in: RoundedRectangle(cornerRadius: 12))
+            LabHint(
+                text: "Suggestions are generated on your device using UITextChecker and a small local vocabulary. They are not Apple's full QuickType predictions.",
+                icon: "text.bubble"
+            )
+
+            Toggle(isOn: $hebrew) {
+                Label("Hebrew keyboard", systemImage: "globe")
+            }
+            .padding(12)
+            .background(Color(uiColor: .tertiarySystemBackground),
+                        in: RoundedRectangle(cornerRadius: 12))
+
+            Toggle(isOn: $networkAllowed) {
+                Label("Allow network tools", systemImage: "network")
+            }
+            .padding(12)
+            .background(Color(uiColor: .tertiarySystemBackground),
+                        in: RoundedRectangle(cornerRadius: 12))
+            LabHint(
+                text: "Network scripts additionally require the keyboard's Full Access permission, which only you can grant in iPadOS Settings.",
+                icon: "lock.shield"
+            )
         }
     }
 }

@@ -1,4 +1,4 @@
-# Keyboard Lab v0.10.0 — Adaptive Toolbar and Offline Autocomplete
+# Keyboard Lab v0.11.0 — Measured Keyboard Height and Visible Actions
 
 This experimental iOS/iPadOS application includes a **real system keyboard extension** based on the MIT-licensed [OpenKeyboardKit](https://github.com/valomedia/OpenKeyboardKit). The host app and extension are implemented in Swift and SwiftUI; JavaScriptCore powers user scripts. No web-based UI is embedded.
 
@@ -9,6 +9,51 @@ This experimental iOS/iPadOS application includes a **real system keyboard exten
 3. Settings > General > Keyboard > Keyboards > Add New Keyboard > Keyboard Lab.
 4. In Notes, long-press the globe icon and select Keyboard Lab. The host app includes an embedded-extension check; it does not prove that iPadOS registered it successfully.
 5. For permitted network and clipboard features, allow Full Access in iPadOS Settings. Independently enable Network On inside Script Studio.
+
+## Approved Keyboard Layout v0.11.0
+
+This is a separate prerelease; the v0.9.0/v0.10.0 releases are untouched.
+
+The always-visible KeyboardKit toolbar has six roles:
+Tools (one tap), the selected manifest tool, native search/command input,
+Run (manifest icon), Grow/Shrink (one tap), and native More. An ephemeral
+word-suggestion strip appears above, never instead of, the command
+field. The on-device UITextChecker and local dictionaries are refreshed
+directly after each host character/space/backspace event as well as UIKit
+selection/text callbacks; this improves reliability but is NOT Apple's
+proprietary QuickType engine.
+
+The extension height is calculated from actual SwiftUI intrinsic
+KeyboardKit key/toolbar/result height using a PreferenceKey, rather than
+an arbitrary proportion of scene height. The large mode changes each
+KeyboardLayout.Item's true height, without adding empty padding or
+Spacer. Only full workspace modes continue to request a larger canvas,
+with their real tool content consuming it.
+
+Browse all 20 tools in a spacious workspace replacing the keys.
+Tap the search field and the keyboard returns below the filtering grid.
+Script Studio and individual tool interfaces retain native SwiftUI
+fields and tool-specific UI. The current tool's command manifest,
+icon and action are synchronized when opening a tool tile.
+
+The Layouts / Settings screen now operates on the same saved keys as
+the toolbar: larger keys, Hebrew layout, offline word suggestions, and
+explicit optional network access. Full Access can only be granted in
+system Settings. Existing custom scripts and JS input routing are kept.
+
+Suggested device acceptance checks:
+1. Landscape: normal keyboard should NOT show an unused large top band.
+2. Grow/Shrink: keycaps actually grow; top blank padding must not.
+3. Type hel in English or של in Hebrew in Notes with host focus:
+   a suggestion row should appear above the unchanged command bar.
+4. Select autocomplete suggestion: only the partial word is replaced,
+   never text elsewhere in the document.
+5. Open Tools: full grid, Favorites, search, native preview; tapping
+   search shows the same keyboard below it.
+6. Script Studio + Sefaria: focus switches between internal fields
+   and host; native.input() receives the command field contents.
+7. Portrait/landscape rotation and Split View; stable key anchoring.
+8. Full Access/network gates must remain opt-in.
 
 ## Adaptive KeyboardKit Toolbar (v0.10.0)
 

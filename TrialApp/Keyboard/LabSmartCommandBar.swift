@@ -27,6 +27,8 @@ struct LabSmartCommandBar: View {
     @State private var localResults: [LabCommandResult] = []
     @State private var fieldValues: [String: String] = [:]
     @State private var showsCommandInput = false
+    @AppStorage("keyboard.lab.autocomplete.enabled")
+    private var suggestionsEnabled = true
     @ObservedObject var completions: LabLocalCompletions
 
     let insertText: (String) -> Void
@@ -38,6 +40,9 @@ struct LabSmartCommandBar: View {
     let scriptReloadToken: Int
     @Binding var toolSearch: String
     let isToolsOpen: Bool
+    let isTypingScreen: Bool
+    let isLargeKeyboard: Bool
+    let activeWorkspaceTool: LabTool?
     let isHebrew: Bool
     let switchLanguage: () -> Void
     let openLibrary: () -> Void
@@ -123,6 +128,9 @@ struct LabSmartCommandBar: View {
                 resultPanel
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
+            if showPredictions {
+                predictionStrip
+            }
             // The command row is the single real KeyboardKit toolbar.
             // When the user intentionally expands results instead of keys,
             // the same toolbar remains accessible as a standalone row.
@@ -147,6 +155,19 @@ struct LabSmartCommandBar: View {
         .onChange(of: outputVisible) { visible in
             setResultsVisible(visible)
         }
+        .onChange(of: activeWorkspaceTool) { tool in
+            // When a tile opens Sefaria, Wikipedia, etc., the command bar
+            // must not continue displaying the previously selected tool.
+            guard let tool else { return }
+            let id = "tool:" + tool.rawValue
+            if selection != id {
+                selection = id
+                outputVisible = false
+                localResults = []
+                lookup.cancel()
+                notice = ""
+            }
+        }
         .onChange(of: scriptReloadToken) { _ in
             scriptRunner.reloadCustomScripts()
             if selectedTool == nil && selectedScript == nil {
@@ -156,49 +177,54 @@ struct LabSmartCommandBar: View {
     }
 
     private var showPredictions: Bool {
-        !isToolsOpen && !showsCommandInput &&
-        router.isHostTarget && !completions.suggestions.isEmpty
+        suggestionsEnabled && isTypingScreen && isKeyboardVisible &&
+        router.isHostTarget && !outputVisible && !completions.suggestions.isEmpty
+    }
+
+    /// Predictions are an ephemeral row, never a replacement for the query.
+    /// They consume real measured content height ONLY while suggestions exist.
+    private var predictionStrip: some View {
+        HStack(spacing: 6) {
+            Text(isHebrew ? "השלמות" : "Suggestions")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.secondary)
+                .fixedSize()
+            ForEach(completions.suggestions, id: \.self) { suggestion in
+                Button {
+                    applyCompletion(suggestion)
+                } label: {
+                    Text(suggestion)
+                        .font(.system(size: 12, weight: .medium))
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, minHeight: 27)
+                }
+                .buttonStyle(.bordered)
+                .tint(.indigo)
+                .accessibilityLabel("Insert suggestion " + suggestion)
+            }
+        }
+        .padding(.horizontal, 7)
+        .frame(height: 35)
+        .transition(.opacity)
     }
 
     private var commandToolbar: some View {
         HStack(spacing: 5) {
-            if isToolsOpen {
-                Label("Tools", systemImage: "square.grid.2x2.fill")
-                    .font(.system(size: 11, weight: .semibold))
-                    .labelStyle(.iconOnly)
-                    .foregroundStyle(.indigo)
-                    .padding(.horizontal, 5)
-            } else {
-                chooser
+            // Tools and size MUST remain one-tap actions, not buried in More.
+            compactAction("Tools", symbol: "square.grid.2x2") {
+                if isToolsOpen { returnToTyping() } else { openLibrary() }
             }
+            .accessibilityLabel(isToolsOpen ? "Back to keyboard" : "Open all tools")
 
-            if showPredictions {
-                HStack(spacing: 0) {
-                    ForEach(completions.suggestions, id: \.self) { suggestion in
-                        Button {
-                            applyCompletion(suggestion)
-                        } label: {
-                            Text(suggestion)
-                                .font(.system(size: 13))
-                                .lineLimit(1)
-                                .frame(maxWidth: .infinity, minHeight: 37)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        if suggestion != completions.suggestions.last {
-                            Divider().frame(height: 19)
-                        }
-                    }
-                }
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
-                .frame(maxWidth: .infinity)
-            } else if isToolsOpen {
+            chooser
+
+            if isToolsOpen {
                 LabSystemSearchField(
                     id: "launcher.search",
                     text: $toolSearch,
-                    placeholder: "Search tools"
+                    placeholder: "Search all tools"
                 )
-                .frame(maxWidth: .infinity, minHeight: 43)
+                .frame(maxWidth: .infinity, minHeight: 40)
             } else {
                 LabSystemSearchField(
                     id: inputID,
@@ -206,16 +232,11 @@ struct LabSmartCommandBar: View {
                     placeholder: activeManifest.input.placeholder,
                     onSubmit: run
                 )
-                .frame(maxWidth: .infinity, minHeight: 43)
+                .frame(maxWidth: .infinity, minHeight: 40)
             }
 
             if isToolsOpen {
                 compactAction("Done", symbol: "checkmark", action: returnToTyping)
-            } else if showPredictions {
-                compactAction("Command", symbol: "magnifyingglass") {
-                    showsCommandInput = true
-                    router.focus(inputID, binding: $query, onReturn: run)
-                }
             } else {
                 LabGlassCommand(
                     title: activeManifest.action.title,
@@ -224,30 +245,43 @@ struct LabSmartCommandBar: View {
                 )
                 .disabled(loading || (activeManifest.input.required &&
                     query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
-                .accessibilityHint("Run " + title + " with command input")
+                .accessibilityHint("Run " + title + " with the command input")
             }
 
+            compactAction(
+                isLargeKeyboard ? "Compact" : "Larger",
+                symbol: isLargeKeyboard
+                    ? "arrow.down.right.and.arrow.up.left"
+                    : "arrow.up.left.and.arrow.down.right",
+                action: changeHeight
+            )
+            .accessibilityLabel(isLargeKeyboard
+                ? "Reduce keyboard key size" : "Enlarge keyboard keys")
+
             Menu {
-                Section("Workspace") {
-                    Button(action: isToolsOpen ? returnToTyping : openLibrary) {
-                        Label(isToolsOpen ? "Keyboard" : "All Tools",
-                              systemImage: isToolsOpen ? "keyboard" : "square.grid.2x2")
-                    }
+                Section("Navigate") {
                     Button(action: openScripts) {
                         Label("Script Studio", systemImage: "curlybraces.square")
                     }
                     Button(action: switchLanguage) {
                         Label(isHebrew ? "English" : "עברית", systemImage: "globe")
                     }
-                    Button(action: changeHeight) {
-                        Label("Change keyboard size",
-                              systemImage: "arrow.up.left.and.arrow.down.right")
+                    Button {
+                        openTool(.layouts)
+                    } label: {
+                        Label("Keyboard Settings", systemImage: "gearshape")
+                    }
+                    if !isTypingScreen {
+                        Button(action: returnToTyping) {
+                            Label("Back to keyboard", systemImage: "keyboard")
+                        }
                     }
                     Button {
                         setKeyboardVisible(!isKeyboardVisible)
                     } label: {
                         Label(isKeyboardVisible ? "Expand results" : "Show keys",
-                              systemImage: isKeyboardVisible ? "arrow.up.left.and.arrow.down.right" : "keyboard")
+                              systemImage: isKeyboardVisible
+                                ? "arrow.up.left.and.arrow.down.right" : "keyboard")
                     }
                     .disabled(isKeyboardVisible && !outputVisible)
                 }
@@ -262,32 +296,33 @@ struct LabSmartCommandBar: View {
                     } label: {
                         Label("From cursor", systemImage: "text.cursor")
                     }
+
                     Button {
                         router.activateHost()
                         showsCommandInput = false
                     } label: {
                         Label("Type in App", systemImage: "arrow.up.right.square")
                     }
-                    Button {
-                        showsCommandInput = true
-                        router.focus(inputID, binding: $query, onReturn: run)
-                        setKeyboardVisible(true)
-                    } label: {
-                        Label("Command input", systemImage: "magnifyingglass")
-                    }
+                }
+
+                Section("Typing") {
+                    Toggle("Word completions", isOn: $suggestionsEnabled)
                 }
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 17, weight: .medium))
-                    .frame(minWidth: 32, minHeight: 35)
+                    .frame(minWidth: 34, minHeight: 35)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            .accessibilityLabel("Keyboard actions")
+            .accessibilityLabel("More keyboard actions")
         }
+        // Match the system keyboard's logical left-to-right control order
+        // even while a Hebrew key layout is selected.
+        .environment(\.layoutDirection, .leftToRight)
         .frame(height: 48)
-        .padding(.horizontal, 7)
+        .padding(.horizontal, 6)
         .onChange(of: router.activeKey) { active in
             if active == inputID { showsCommandInput = true }
             else if active == nil { showsCommandInput = false }

@@ -9,7 +9,8 @@ final class KeyboardViewController: KeyboardInputViewController {
     // Presentation height is independent of the active internal input field.
     private var workspaceVisible = false
     private var lastRequestedHeight: CGFloat = 0
-    private let expansionKey = "keyboard.lab.v010.expanded"
+    private var measuredContentHeight: CGFloat?
+    private let expansionKey = "keyboard.lab.v011.largeKeys"
     private let labInput = LabInputRouter()
     private let completions = LabLocalCompletions()
 
@@ -52,6 +53,11 @@ final class KeyboardViewController: KeyboardInputViewController {
         // Keep the existing KeyboardKit behavior outside tool mode.
         let handler = LabRoutedActionHandler(controller: self)
         handler.labInput = labInput
+        // UIKit's textDidChange is not called after every key release in all
+        // host apps. Refresh the local suggestion strip after actual actions.
+        handler.hostTextDidEdit = { [weak self] in
+            self?.refreshSuggestions()
+        }
         services.actionHandler = handler
 
         // One explicit height constraint, adjustable without rebuilding keys.
@@ -102,26 +108,43 @@ final class KeyboardViewController: KeyboardInputViewController {
 
     private func requestedHeight() -> CGFloat {
         let availableHeight = availableWindowHeight()
-        if UIDevice.current.userInterfaceIdiom == .pad {
-            if workspaceVisible {
-                return min(800, max(500, availableHeight * 0.76))
-            }
-            if resultsVisible {
-                return min(625, max(555, availableHeight * 0.58))
-            }
-            return expanded
-                ? min(620, max(380, availableHeight * 0.56))
-                : min(455, max(420, availableHeight * 0.43))
-        }
+        let isPad = UIDevice.current.userInterfaceIdiom == .pad
+
+        // A workspace is deliberately large: it contains cards, forms or
+        // script results instead of a full-sized keyboard.
         if workspaceVisible {
-            return min(590, max(385, availableHeight * 0.68))
+            let portion: CGFloat = isPad ? 0.76 : 0.69
+            return min(isPad ? 810 : 590, availableHeight * portion)
         }
-        if resultsVisible {
-            return min(480, max(325, availableHeight * 0.53))
+
+        // Prefer SwiftUI's measurement of the *actual* KeyboardKit keys,
+        // the adaptive toolbar, and (if present) inline suggestions/results.
+        // Never use a fixed percentage here: that caused a huge empty band
+        // above the keys in landscape and when another app hosted the view.
+        if let measured = measuredContentHeight, measured.isFinite, measured >= 140 {
+            return min(availableHeight * 0.9, ceil(measured) + 6)
         }
-        return expanded
-            ? min(470, max(315, availableHeight * 0.52))
-            : min(320, max(250, availableHeight * 0.37))
+
+        // Stable initial estimate until the first intrinsic measurement.
+        // The next SwiftUI layout pass replaces this guess with measured size.
+        let layout = LabSizedKeyboardLayout.make(
+            for: state.keyboardContext,
+            hebrew: UserDefaults.standard.bool(forKey: "keyboard.lab.hebrew.enabled"),
+            largeKeys: expanded
+        )
+        let toolbarHeight: CGFloat = 48
+        return min(availableHeight * 0.9, CGFloat(layout.totalHeight) + toolbarHeight + 12)
+    }
+
+    private func contentHeightDidMeasure(_ height: CGFloat) {
+        let upper = availableWindowHeight() * 0.9
+        guard height.isFinite, height >= 140, height < upper else { return }
+        let rounded = ceil(height)
+        if let previous = measuredContentHeight, abs(previous - rounded) <= 1 {
+            return
+        }
+        measuredContentHeight = rounded
+        updateHeight()
     }
 
     private func updateHeight() {
@@ -156,9 +179,15 @@ final class KeyboardViewController: KeyboardInputViewController {
                 state: controller.state,
                 insertText: { [weak self] text in
                     self?.textDocumentProxy.insertText(text)
+                    DispatchQueue.main.async { [weak self] in
+                        self?.refreshSuggestions()
+                    }
                 },
                 deleteHost: { [weak self] in
                     self?.textDocumentProxy.deleteBackward()
+                    DispatchQueue.main.async { [weak self] in
+                        self?.refreshSuggestions()
+                    }
                 },
                 readContext: { [weak self] in
                     self?.textDocumentProxy.documentContextBeforeInput ?? ""
@@ -187,6 +216,13 @@ final class KeyboardViewController: KeyboardInputViewController {
                     guard let self else { return }
                     self.resultsVisible = newValue
                     self.updateHeight()
+                },
+                measuredContentHeight: { [weak self] measured in
+                    // Defers height-constraint updates until after SwiftUI
+                    // preference propagation, avoiding layout mutation loops.
+                    DispatchQueue.main.async { [weak self] in
+                        self?.contentHeightDidMeasure(measured)
+                    }
                 }
             )
         }

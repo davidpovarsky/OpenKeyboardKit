@@ -32,7 +32,9 @@ checks = {
         and "LabNativeToolbar" not in shell
         and not (keyboard / "LabNativeChrome.swift").exists(),
     "Hebrew and English use one KeyboardKit key renderer":
-        "LabHebrewLayout.make(for: keyboardContext)" in shell and
+        "LabSizedKeyboardLayout.make(" in shell and
+        "LabHebrewLayout.make(for: context)" in read("LabSizedKeyboardLayout.swift") and
+        "KeyboardLayout.standard(for: context)" in read("LabSizedKeyboardLayout.swift") and
         "KeyboardView(" in shell and "useHebrew.toggle()" in shell and
         "LabToolHebrewKeyboard(" not in shell,
     "Hebrew has the mapped Apple-style rows and protected special keys":
@@ -125,9 +127,52 @@ checks = {
              "applyCompletion(suggestion)", "showsCommandInput = true"]),
     "compact keyboard defaults on and workspace hides keys":
         'private var expanded = false' in controller
-        and 'private var expanded = false' in shell or '@AppStorage("keyboard.lab.v010.expanded") private var expanded = false' in shell
+        and '@AppStorage("keyboard.lab.v011.largeKeys") private var expanded = false' in shell
         and 'showsKeys = false' in shell
         and 'onChange(of: inputRouter.activeKey)' in shell,
+    "real key-size resizing changes every KeyboardKit row":
+        "layout.itemRows[row][column].size.height += extra" in read("LabSizedKeyboardLayout.swift")
+        and "largeKeys: expanded" in shell and "LabSizedKeyboardLayout.make(" in shell,
+    "height driven by measured intrinsic keyboard, not percentages":
+        all(x in controller for x in [
+            "measuredContentHeight: CGFloat?", "contentHeightDidMeasure(",
+            "if let measured = measuredContentHeight",
+            "ceil(measured) + 6", "heightConstraint?.constant = target"
+        ])
+        and all(x in shell for x in [
+            "LabMeasuredKeyboardHeightKey", ".onPreferenceChange(",
+            "geometry.size.height", "measuredContentHeight(height)"
+        ])
+        and "availableHeight * 0.43" not in controller,
+    "Tools and resize have permanent visible toolbar buttons":
+        all(x in read("LabSmartCommandBar.swift") for x in [
+            'compactAction("Tools", symbol: "square.grid.2x2")',
+            'symbol: isLargeKeyboard',
+            'action: changeHeight',
+            'private var chooser: some View', 'private var commandToolbar: some View'
+        ]),
+    "word completion strip does not replace the command search":
+        all(x in read("LabSmartCommandBar.swift") for x in [
+            "private var predictionStrip", "if showPredictions {",
+            "predictionStrip", "id: inputID", "ForEach(completions.suggestions",
+            "suggestionsEnabled && isTypingScreen"
+        ]),
+    "word suggestions refresh after host key actions":
+        all(x in read("LabInputRouter.swift") for x in [
+            "var hostTextDidEdit:", "scheduleSuggestions(after:",
+            "DispatchQueue.main.async", "hostTextDidEdit?()"
+        ]) and "handler.hostTextDidEdit" in controller,
+    "native keyboard settings use active v0.11 keys":
+        all(x in read("LabStoragePanels.swift") for x in [
+            'keyboard.lab.v011.largeKeys', 'keyboard.lab.autocomplete.enabled',
+            'keyboard.lab.hebrew.enabled', 'keyboard.trial.allowNetwork'
+        ]) and
+        'Button {' in read("LabSmartCommandBar.swift") and
+        'Label("Keyboard Settings", systemImage: "gearshape")'
+            in read("LabSmartCommandBar.swift"),
+    "tool detail updates command icon and action":
+        "activeWorkspaceTool: currentTool" in shell
+        and ".onChange(of: activeWorkspaceTool)" in read("LabSmartCommandBar.swift"),
     "height no longer jumps when typing into command field":
         "if workspaceVisible {" in controller and
         "if labInput.isEditingTools {" not in controller,

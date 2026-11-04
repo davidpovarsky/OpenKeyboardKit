@@ -114,14 +114,33 @@ final class LabInputRouter: ObservableObject {
 /// A standard KeyboardKit action handler with a routing boundary.
 final class LabRoutedActionHandler: KeyboardAction.StandardActionHandler {
     weak var labInput: LabInputRouter?
+    var hostTextDidEdit: (() -> Void)?
+
+    private func scheduleSuggestions(after action: KeyboardAction) {
+        guard labInput?.isHostTarget == true else { return }
+        switch action {
+        case .character, .text, .space, .backspace, .primary, .emoji,
+             .urlDomain, .tab:
+            // Wait until the input proxy has received the edit.
+            DispatchQueue.main.async { [weak self] in
+                self?.hostTextDidEdit?()
+            }
+        default:
+            break
+        }
+    }
 
     override func handle(_ gesture: Keyboard.Gesture, on action: KeyboardAction) {
         if labInput?.intercept(gesture, action: action) == true { return }
         super.handle(gesture, on: action)
+        if gesture == .release || gesture == .repeatPress {
+            scheduleSuggestions(after: action)
+        }
     }
 
     override func handle(_ action: KeyboardAction) {
         if labInput?.intercept(.release, action: action) == true { return }
         super.handle(action)
+        scheduleSuggestions(after: action)
     }
 }

@@ -12,6 +12,7 @@ on:
       - feature/native-glass-controls-v08
       - feature/smart-command-bar-v09
       - feature/adaptive-toolbar-v010
+      - feature/keyboard-layout-v011
     paths:
       - 'TrialApp/**'
       - 'TrialKeyboard.yml'
@@ -90,7 +91,7 @@ jobs:
           assert keyboard["NSExtension"]["NSExtensionPointIdentifier"] == "com.apple.keyboard-service"
           assert keyboard["NSExtension"]["NSExtensionPrincipalClass"] == "TrialKeyboardExtension.KeyboardViewController"
           assert keyboard["CFBundleIdentifier"] == host["CFBundleIdentifier"] + ".extension"
-          assert keyboard["CFBundleShortVersionString"] == "0.10.0"
+          assert keyboard["CFBundleShortVersionString"] == "0.11.0"
           assert attrs["RequestsOpenAccess"] is True
           assert attrs["IsASCIICapable"] is True
           assert attrs["PrimaryLanguage"] == "en-US"
@@ -110,37 +111,37 @@ jobs:
           path: trial-build.log
           if-no-files-found: ignore
       - name: Publish Keyboard Lab unsigned IPA (optional)
-        if: github.ref == 'refs/heads/feature/adaptive-toolbar-v010'
+        if: github.ref == 'refs/heads/feature/keyboard-layout-v011'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: keyboard-lab-v0.10.0
-          name: "Keyboard Lab v0.10.0 - Adaptive Toolbar and Offline Completion"
+          tag_name: keyboard-lab-v0.11.0
+          name: "Keyboard Lab v0.11.0 - Compact Keys and Smart Toolbar"
           target_commitish: ${{ github.sha }}
           prerelease: true
           files: TrialKeyboard-unsigned.ipa
           fail_on_unmatched_files: true
           body: |
-            Keyboard Lab v0.10.0 consolidates the keyboard interface into a
-            single adaptive toolbar while preserving the proven KeyboardKit
-            key renderer and script/command engine.
+            Keyboard Lab v0.11.0 — revised after iPad screenshot/interactive
+            approval. Separate pre-release; no stable builds were modified.
 
-            - One KeyboardKit-owned 48pt toolbar: command picker, search,
-              manifest action button, and overflow menu.
-            - Local UITextChecker completions in the same toolbar while
-              typing in the host app (when available), with fallback word
-              suggestions for English and Hebrew. No network required.
-            - Keyboard actions, language switching, keyboard size, scripts,
-              From Cursor, and To App moved to a native overflow menu.
-            - Tool library opens as a full workspace; tapping search restores
-              the keyboard and filters the same tool grid without a second
-              search field.
-            - Default keyboard height is compact; results have a separate
-              height request; typing keys remain bottom anchored.
-            - Suggestions replace only the current word after checking that
-              the host caret context still matches. No automatic text changes.
-            - Existing JavaScript manifests, native.input(), results, and
-              network opt-in remain intact.
-            - Full Xcode 26.3 Release build/embedded .appex validation and
-              a dedicated manifest contract test on macOS.
-            - iPadOS 27 visual/focus/landscape QA is still required.
-            - Unsigned IPA: install with SideStore or equivalent signers.
+            - Permanent visible Tools and Grow/Shrink buttons in the
+              KeyboardKit toolbar, beside manifest picker, native search,
+              Run and More.
+            - Transient offline word suggestions ABOVE the toolbar,
+              never replacing or hiding the command input field.
+            - Local completion refresh after EVERY host key action, not
+              solely on UIKit textDidChange notifications.
+            - Intrinsic content-height measurement of the KeyboardKit rows,
+              toolbar and result/suggestion panels; removes fixed 420-point
+              empty landscape band from normal typing mode.
+            - KeyboardKit key rows themselves grow in Large Keys mode.
+            - Tool library as a real workspace instead of overcrowding
+              the keyboard. Tool search restores keys when focused.
+            - Native settings controls for word completions, key size,
+              language and network permission opt-in.
+            - Shared English/Hebrew key renderer and backward-compatible
+              Script Studio, JavaScript manifests and insertion behavior.
+            - Release build uses Xcode 26.3 and verifies the embedded
+              .appex before publishing an UNSIGNED IPA.
+            - Final iPadOS 27 landscape/portrait and focus testing still
+              requires a real device.

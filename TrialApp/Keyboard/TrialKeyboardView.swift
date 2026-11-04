@@ -2,8 +2,8 @@ import OpenKeyboardKit
 import SwiftUI
 import UIKit
 
-/// One persistent keyboard, with changing native SwiftUI workspaces ABOVE it.
-/// In particular, tool UI never replaces the actual keyboard.
+/// One persistent keyboard and a measured content-height surface.
+/// In workspace mode the keys are temporarily hidden and restored on focus.
 private enum LabScreen: Equatable {
     case typing
     case tools
@@ -24,6 +24,7 @@ struct TrialKeyboardView: View {
     let setExpanded: (Bool) -> Void
     let setWorkspaceVisible: (Bool) -> Void
     let setResultsVisible: (Bool) -> Void
+    let measuredContentHeight: (CGFloat) -> Void
 
     @EnvironmentObject private var keyboardContext: KeyboardContext
     @State private var screen: LabScreen = .typing
@@ -32,7 +33,7 @@ struct TrialKeyboardView: View {
     @State private var scriptReloadToken = 0
     @State private var isResultsShowing = false
     @State private var toolSearch = ""
-    @AppStorage("keyboard.lab.v010.expanded") private var expanded = false
+    @AppStorage("keyboard.lab.v011.largeKeys") private var expanded = false
     @AppStorage("keyboard.lab.theme") private var themeName = LabTheme.classic.rawValue
 
     var body: some View {
@@ -79,6 +80,9 @@ struct TrialKeyboardView: View {
                 scriptReloadToken: scriptReloadToken,
                 toolSearch: $toolSearch,
                 isToolsOpen: screen == .tools,
+                isTypingScreen: screen == .typing,
+                isLargeKeyboard: expanded,
+                activeWorkspaceTool: currentTool,
                 isHebrew: useHebrew,
                 switchLanguage: { useHebrew.toggle() },
                 openLibrary: openLibrary,
@@ -98,6 +102,19 @@ struct TrialKeyboardView: View {
                 }
             )
             .fixedSize(horizontal: false, vertical: true)
+            .background {
+                GeometryReader { geometry in
+                    Color.clear.preference(
+                        key: LabMeasuredKeyboardHeightKey.self,
+                        value: geometry.size.height
+                    )
+                }
+            }
+            .onPreferenceChange(LabMeasuredKeyboardHeightKey.self) { height in
+                if showsKeys && height >= 130 {
+                    measuredContentHeight(height)
+                }
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         .background(LabDesign.canvas)
@@ -120,11 +137,19 @@ struct TrialKeyboardView: View {
         .onChange(of: useHebrew) { _ in
             refreshSuggestions()
         }
+        .onChange(of: expanded) { value in
+            setExpanded(value)
+        }
         .onChange(of: inputRouter.activeKey) { active in
             if active != nil && !showsKeys {
                 showsKeys = true
             }
         }
+    }
+
+    private var currentTool: LabTool? {
+        if case .detail(let tool) = screen { return tool }
+        return nil
     }
 
     private func setPresentationHeight() {
@@ -166,14 +191,13 @@ struct TrialKeyboardView: View {
     private func changeHeight() {
         if !showsKeys { showsKeys = true }
         expanded.toggle()
-        setExpanded(expanded)
     }
 
     private func standardKeyboard(toolbar: AnyView) -> some View {
         KeyboardView(
-            layout: useHebrew
-                ? LabHebrewLayout.make(for: keyboardContext)
-                : KeyboardLayout.standard(for: keyboardContext),
+            layout: LabSizedKeyboardLayout.make(
+                for: keyboardContext, hebrew: useHebrew, largeKeys: expanded
+            ),
             state: state,
             services: services,
             buttonContent: { $0.view },
@@ -188,4 +212,17 @@ struct TrialKeyboardView: View {
         )
     }
 
+}
+
+
+/// Measure only the intrinsic key+toolbar+result content, not the parent
+/// KeyboardInputViewController's constrained height. This avoids a feedback
+/// loop in landscape where the keyboard measured its own empty background.
+private struct LabMeasuredKeyboardHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        let next = nextValue()
+        if next > 0 { value = next }
+    }
 }
