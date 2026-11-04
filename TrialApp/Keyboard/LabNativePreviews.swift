@@ -158,3 +158,32 @@ struct LabResultPreview: View {
                     in: RoundedRectangle(cornerRadius: 18))
     }
 }
+
+
+struct LabSavedTextPreview: View {
+    let title: String
+    let text: String
+    let symbol: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label(title, systemImage: symbol)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.indigo)
+            Divider()
+            Text(text)
+                .font(.system(size: 14))
+                .foregroundStyle(.primary)
+                .lineLimit(12)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Label("Tap Insert or choose an action", systemImage: "hand.tap")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .padding(17)
+        .frame(width: 290, alignment: .leading)
+        .background(Color(uiColor: .secondarySystemBackground),
+                    in: RoundedRectangle(cornerRadius: 18))
+    }
+}
