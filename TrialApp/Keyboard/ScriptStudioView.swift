@@ -136,14 +136,27 @@ struct ScriptStudioView: View {
                             run(script)
                         }
                         .contextMenu {
-                            Button(script.isBuiltIn ? "Copy as custom" : "Edit") {
+                            Button {
+                                run(script)
+                            } label: {
+                                Label("Run Script", systemImage: "play.fill")
+                            }
+                            Button {
                                 openEditor(script)
+                            } label: {
+                                Label(script.isBuiltIn ? "Copy and Customize" : "Edit Source",
+                                      systemImage: "chevron.left.forwardslash.chevron.right")
                             }
                             if !script.isBuiltIn {
-                                Button(role: .destructive) { model.delete(script) } label: {
-                                    Label("Delete script", systemImage: "trash")
+                                Divider()
+                                Button(role: .destructive) {
+                                    model.delete(script)
+                                } label: {
+                                    Label("Delete Script", systemImage: "trash")
                                 }
                             }
+                        } preview: {
+                            LabScriptPreview(script: script)
                         }
                     }
                 }
