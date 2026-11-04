@@ -23,6 +23,8 @@ do not nest a second UIToolbar in OpenKeyboardKit's keyboard toolbar.
   It is embedded as an individual control in the existing HStack, not a UIToolbar.
 - Tool headers use native GlassEffectContainer with grouped Liquid Glass
   commands instead of custom translucent toolbar backgrounds.
+- Script Studio shows its own Glass header without a duplicated outer header,
+  reserving more usable space for scripts and forms.
 - The launcher, Sefaria, Wikipedia, dictionary, and GIF searches display a
   genuine UISearchBar. A transparent hit target activates a LabInputRouter
   Binding while UISearchBar itself is noninteractive and cannot become

@@ -56,6 +56,9 @@ checks = {
         "LabSystemSearchField" in read("LabToolHome.swift") and
         "LabSystemSearchField" in read("LabToolPage.swift") and
         "LabSystemSearchField" in read("LabGIFPanel.swift"),
+    "Script Studio has only one visible toolbar header":
+        "if tool != .scripts {" in read("LabToolPage.swift")
+        and "LabGlassHeader(" in read("ScriptStudioView.swift"),
     "native quick form with functional output": all(x in read("LabQuickFormPanel.swift") for x in
         ["Picker(", "DatePicker(", "Toggle(", "Stepper(", "Slider(",
          "ProgressView(", ".confirmationDialog(", "insertText(brief)"]),

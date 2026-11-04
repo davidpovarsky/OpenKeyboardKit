@@ -16,13 +16,15 @@ struct LabToolPage: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            LabGlassHeader(
-                title: tool.title, subtitle: tool.detail, symbol: tool.symbol,
-                back: close, close: returnToKeyboard
-            )
-            .background(.ultraThinMaterial)
+            if tool != .scripts {
+                LabGlassHeader(
+                    title: tool.title, subtitle: tool.detail, symbol: tool.symbol,
+                    back: close, close: returnToKeyboard
+                )
+                .background(.ultraThinMaterial)
 
-            Divider().opacity(0.35)
+                Divider().opacity(0.35)
+            }
 
             if tool == .scripts {
                 ScriptStudioView(
