@@ -88,8 +88,9 @@ jobs:
           name: trial-build-log
           path: trial-build.log
           if-no-files-found: ignore
-      - name: Publish Keyboard Lab unsigned IPA
+      - name: Publish Keyboard Lab unsigned IPA (optional)
         if: github.ref == 'refs/heads/feature/keyboard-native-input-redesign'
+        continue-on-error: true
         uses: softprops/action-gh-release@v2
         with:
           tag_name: keyboard-lab-v0.6.0
@@ -99,10 +100,12 @@ jobs:
           files: TrialKeyboard-unsigned.ipa
           fail_on_unmatched_files: true
           body: |
-            iPad keyboard experiment based on OpenKeyboardKit (MIT).
-            - Pin original-size keyboard keys to the bottom; extra vertical space remains above.
-            - Persist expanded/compact state and stabilize height calculation across window changes.
-            - Improve system keyboard setup instructions and embedded-extension diagnostics.
-            - Retains SwiftUI Script Studio, JavaScriptCore and Full Access request.
-            This IPA is UNSIGNED: use SideStore/AltStore to re-sign both the host app and its embedded keyboard extension.
-            Keyboard availability must be tested in Notes and other supported apps; iPadOS may block third-party keyboards.
+            Keyboard Lab v0.6.0: native SwiftUI tools and persistent keyboard.
+            - The keyboard stays visible under every tool and Script Studio.
+            - Text fields are routed to the active tool, not to the host document.
+            - Backspace, space, return, caret movement and English/Hebrew tool input.
+            - Native Liquid Glass (iPadOS 26+), SF Symbols, Pow animations, SwiftUI Introspect.
+            - Sefaria, Wikipedia, dictionary, text actions, calculator, notes, snippets, media, GIFs, clipboard and JavaScriptCore plugins.
+            - CI checks every input panel and verifies the embedded keyboard extension.
+            - Unsigned IPA. When installing through SideStore/AltStore, keep and sign the embedded .appex.
+            This is an experimental build. On-device UI and SideStore signing behavior still require acceptance testing.
