@@ -172,11 +172,9 @@ struct LabTranslatePanel: View {
             }
             .font(.subheadline.weight(.semibold))
 
-            TextEditor(text: $input)
-                .frame(minHeight: 94)
-                .padding(8)
-                .background(Color(uiColor: .tertiarySystemBackground),
-                            in: RoundedRectangle(cornerRadius: 14))
+            LabEditableField(id: "translate.source",
+                             placeholder: "Text to translate",
+                             text: $input, multiline: true, minHeight: 92)
 
             HStack {
                 Button("From cursor") { input = LabText.clip(readContext(), limit: 450) }
