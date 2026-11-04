@@ -99,6 +99,10 @@ checks = {
         ["setWorkspaceVisible: (Bool) -> Void", "showsKeys = true",
          "setResultsVisible: (Bool) -> Void", "if !visible {"]) and
         "setKeyboardVisible(!isKeyboardVisible)" in read("LabSmartCommandBar.swift"),
+    "keyboard controller wires suggestions refresh when language changes":
+        "refreshSuggestions: { [weak self] in" in controller
+        and "refreshSuggestions: () -> Void" in shell
+        and "refreshSuggestions()" in shell,
     "offline native word suggestions without network":
         all(x in read("LabLocalCompletions.swift") for x in
             ["UITextChecker()", "completions(forPartialWordRange:",
@@ -107,7 +111,7 @@ checks = {
     "suggestions replace current word safely in host":
         all(x in controller for x in
             ["private func applyCompletion(", "labInput.isHostTarget",
-             "textDocumentProxy.selectedText == nil",
+             '(textDocumentProxy.selectedText ?? \"\").isEmpty",
              "textDocumentProxy.deleteBackward()",
              "textDocumentProxy.insertText(value)"]),
     "adaptive toolbar switches predictions and search":

@@ -31,7 +31,7 @@ final class KeyboardViewController: KeyboardInputViewController {
         guard labInput.isHostTarget, fragment.count >= 2,
               value.localizedCaseInsensitiveHasPrefix(fragment),
               (textDocumentProxy.documentContextBeforeInput ?? "").hasSuffix(fragment),
-              textDocumentProxy.selectedText == nil else { return }
+              (textDocumentProxy.selectedText ?? "").isEmpty else { return }
         for _ in fragment {
             textDocumentProxy.deleteBackward()
         }
@@ -168,6 +168,9 @@ final class KeyboardViewController: KeyboardInputViewController {
                 completions: self?.completions ?? LabLocalCompletions(),
                 applyCompletion: { [weak self] value in
                     self?.applyCompletion(value)
+                },
+                refreshSuggestions: { [weak self] in
+                    self?.refreshSuggestions()
                 },
                 setExpanded: { [weak self] newValue in
                     guard let self else { return }
