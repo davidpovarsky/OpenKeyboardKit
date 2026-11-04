@@ -69,7 +69,7 @@ jobs:
           assert keyboard["NSExtension"]["NSExtensionPointIdentifier"] == "com.apple.keyboard-service"
           assert keyboard["NSExtension"]["NSExtensionPrincipalClass"] == "TrialKeyboardExtension.KeyboardViewController"
           assert keyboard["CFBundleIdentifier"] == host["CFBundleIdentifier"] + ".extension"
-          assert keyboard["CFBundleShortVersionString"] == "0.6.0"
+          assert keyboard["CFBundleShortVersionString"] == "0.6.1"
           assert attrs["RequestsOpenAccess"] is True
           assert attrs["IsASCIICapable"] is True
           assert attrs["PrimaryLanguage"] == "en-US"
@@ -90,11 +90,10 @@ jobs:
           if-no-files-found: ignore
       - name: Publish Keyboard Lab unsigned IPA (optional)
         if: github.ref == 'refs/heads/feature/keyboard-native-input-redesign'
-        continue-on-error: true
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: keyboard-lab-v0.6.0
-          name: "Keyboard Lab v0.6.0 - Native Tool Input & Glass"
+          tag_name: keyboard-lab-v0.6.1
+          name: "Keyboard Lab v0.6.1 - System Previews & Interactions"
           target_commitish: ${{ github.sha }}
           prerelease: true
           files: TrialKeyboard-unsigned.ipa
@@ -105,6 +104,8 @@ jobs:
             - Text fields are routed to the active tool, not to the host document.
             - Backspace, space, return, caret movement and English/Hebrew tool input.
             - Native Liquid Glass (iPadOS 26+), SF Symbols, Pow animations, SwiftUI Introspect.
+            - System context menu previews for tools, scripts, search results, notes, snippets and clipboard.
+            - Native long-press actions, selection feedback and iPad pointer hover lift.
             - Sefaria, Wikipedia, dictionary, text actions, calculator, notes, snippets, media, GIFs, clipboard and JavaScriptCore plugins.
             - CI checks every input panel and verifies the embedded keyboard extension.
             - Unsigned IPA. When installing through SideStore/AltStore, keep and sign the embedded .appex.
