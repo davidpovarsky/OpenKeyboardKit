@@ -35,7 +35,8 @@ struct LabToolPreview: View {
         case .themes: return "Choose a palette for the tool interface."
         case .profiles: return "Pick up to six favorites for quick access."
         case .layouts: return "Adjust the keyboard's expanded layout preferences."
-        case .scripts: return "Manage JavaScriptCore scripts and native SwiftUI forms."\n        case .quickForm: return "Build a status brief with native SwiftUI controls and insert it directly."
+        case .scripts: return "Manage JavaScriptCore scripts and native SwiftUI forms."
+        case .quickForm: return "Build a status brief with native SwiftUI controls and insert it directly."
         }
     }
 

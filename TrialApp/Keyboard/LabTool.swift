@@ -28,7 +28,8 @@ enum LabTool: String, CaseIterable, Identifiable, Hashable {
         case .themes: return "Themes"
         case .profiles: return "Profiles"
         case .layouts: return "Layouts"
-        case .scripts: return "Plugins & JS"\n        case .quickForm: return "Quick Brief"
+        case .scripts: return "Plugins & JS"
+        case .quickForm: return "Quick Brief"
         }
     }
 
@@ -52,7 +53,8 @@ enum LabTool: String, CaseIterable, Identifiable, Hashable {
         case .themes: return "Customize appearance"
         case .profiles: return "Personal shortcuts"
         case .layouts: return "Keyboard behavior"
-        case .scripts: return "JavaScriptCore library"\n        case .quickForm: return "Native status builder"
+        case .scripts: return "JavaScriptCore library"
+        case .quickForm: return "Native status builder"
         }
     }
 
@@ -76,7 +78,8 @@ enum LabTool: String, CaseIterable, Identifiable, Hashable {
         case .themes: return "paintpalette"
         case .profiles: return "person.crop.circle"
         case .layouts: return "square.grid.2x2"
-        case .scripts: return "puzzlepiece.extension"\n        case .quickForm: return "slider.horizontal.3"
+        case .scripts: return "puzzlepiece.extension"
+        case .quickForm: return "slider.horizontal.3"
         }
     }
 
@@ -91,7 +94,8 @@ enum LabTool: String, CaseIterable, Identifiable, Hashable {
         case .conversion, .templates: return Color(red: 0.18, green: 0.66, blue: 0.37)
         case .sefaria: return Color(red: 0.20, green: 0.43, blue: 0.69)
         case .themes: return Color(red: 0.59, green: 0.35, blue: 0.79)
-        case .profiles: return Color(red: 0.35, green: 0.35, blue: 0.85)\n        case .quickForm: return Color(red: 0.24, green: 0.58, blue: 0.72)
+        case .profiles: return Color(red: 0.35, green: 0.35, blue: 0.85)
+        case .quickForm: return Color(red: 0.24, green: 0.58, blue: 0.72)
         }
     }
 

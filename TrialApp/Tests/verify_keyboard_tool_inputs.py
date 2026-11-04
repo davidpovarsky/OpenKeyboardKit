@@ -59,6 +59,11 @@ checks = {
     "native quick form with functional output": all(x in read("LabQuickFormPanel.swift") for x in
         ["Picker(", "DatePicker(", "Toggle(", "Stepper(", "Slider(",
          "ProgressView(", ".confirmationDialog(", "insertText(brief)"]),
+    "new tool enum and preview switch compile syntax": all(
+        "\n        case .quickForm:" in read(name)
+        and "\\n        case .quickForm:" not in read(name)
+        for name in ["LabTool.swift", "LabNativePreviews.swift"]
+    ),
     "native GIF previews": all(x in read("LabGIFPanel.swift") for x in
         [".contextMenu {", "preview: {", "Copy GIF", "Copy Source Link"]),
     "system context menu previews": all(x in read("LabNativePreviews.swift") for x in
