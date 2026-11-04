@@ -25,6 +25,8 @@ jobs:
     timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
+      - name: Check keyboard input regression guards
+        run: python3 TrialApp/Tests/verify_keyboard_tool_inputs.py
       - name: Verify Xcode toolchain
         run: xcodebuild -version
       - name: Install XcodeGen
