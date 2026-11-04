@@ -22,12 +22,10 @@ struct LabTextToolsPanel: View {
                     : "Transform text entirely on your iPad. Nothing is uploaded.",
                     icon: isSmart ? "sparkles" : "textformat")
 
-            TextEditor(text: $text)
-                .font(.system(size: 14))
-                .frame(minHeight: 90)
-                .padding(7)
-                .background(Color(uiColor: .tertiarySystemBackground),
-                            in: RoundedRectangle(cornerRadius: 13))
+            LabEditableField(
+                id: "textfx.source", placeholder: "Text to transform",
+                text: $text, multiline: true, minHeight: 95
+            )
 
             HStack {
                 Button("From cursor") { text = LabText.clip(readContext()) }
@@ -222,9 +220,9 @@ struct LabConversionPanel: View {
                         in: RoundedRectangle(cornerRadius: 12))
 
             HStack {
-                TextField("Value", text: $amount)
-                    .keyboardType(.decimalPad)
-                    .font(.title2)
+                LabEditableField(id: "conversion.value",
+                                 placeholder: "Enter a number",
+                                 text: $amount, minHeight: 46)
                 Text(options[selected].1).foregroundStyle(.secondary)
             }
             .padding(13)
