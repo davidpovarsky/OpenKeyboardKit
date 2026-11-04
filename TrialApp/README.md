@@ -1,4 +1,4 @@
-# Keyboard Lab v0.9.0 — Smart Command Bar and Unified Hebrew
+# Keyboard Lab v0.10.0 — Adaptive Toolbar and Offline Autocomplete
 
 This experimental iOS/iPadOS application includes a **real system keyboard extension** based on the MIT-licensed [OpenKeyboardKit](https://github.com/valomedia/OpenKeyboardKit). The host app and extension are implemented in Swift and SwiftUI; JavaScriptCore powers user scripts. No web-based UI is embedded.
 
@@ -9,6 +9,42 @@ This experimental iOS/iPadOS application includes a **real system keyboard exten
 3. Settings > General > Keyboard > Keyboards > Add New Keyboard > Keyboard Lab.
 4. In Notes, long-press the globe icon and select Keyboard Lab. The host app includes an embedded-extension check; it does not prove that iPadOS registered it successfully.
 5. For permitted network and clipboard features, allow Full Access in iPadOS Settings. Independently enable Network On inside Script Studio.
+
+## Adaptive KeyboardKit Toolbar (v0.10.0)
+
+This version replaces multiple always-visible controls with ONE 48pt
+KeyboardKit-owned toolbar above the existing keys.
+
+- **Default:** one manifest-driven command chooser, native search field,
+  action button, and ellipsis menu. There is no extra status line and no
+  separate Quick Actions strip. The compact keyboard height is selected
+  by default, with the old large size available from the menu.
+- **Typing into a host app:** if the current word has suggestions, the
+  center becomes a row of up to three local completions. The command search
+  is always one tap away (magnifying glass). Typing into the command field
+  never sends host text to any service.
+- **Offline completions:** uses Apple's UITextChecker for whichever
+  supported language is available, with a small fallback set for English
+  and Hebrew. These are word completions, not Apple QuickType prediction,
+  grammar correction, or an AI text model. The engine sends no data over
+  the network. Selecting a suggestion replaces only the exact partial word
+  immediately before the host caret after checking the current context;
+  it never auto-inserts or transmits text.
+- **Tool Library:** takes over the keyboard's area instead of crowding a
+  grid above visible keys. Tool filtering uses the shared command/search
+  row; tapping a tool field restores the regular keyboard automatically.
+- **Results:** the existing script/results panel appears above the
+  toolbar, with a modest additional height request only while results
+  are visible. It may expand to a full workspace by explicit action.
+- **More (ellipsis):** Keyboard, Tools, Scripts, Hebrew/English, keyboard
+  size, From Cursor, Type in App, and Command Input. The menu uses SwiftUI
+  controls and does not insert a second UIToolbar inside the extension.
+- **Compatibility:** iOS 17+ with real Glass buttons on supported systems.
+  The iPad's letter layout remains managed by KeyboardKit and is not
+  remade when suggestions appear.
+
+Physical iPadOS landscape, split-view, hosted text fields, keyboard
+height, and Hebrew completion behavior still require device testing.
 
 ## Universal Smart Command Bar (v0.9.0)
 

@@ -11,6 +11,7 @@ on:
       - hotfix/keyboard-restore-v071
       - feature/native-glass-controls-v08
       - feature/smart-command-bar-v09
+      - feature/adaptive-toolbar-v010
     paths:
       - 'TrialApp/**'
       - 'TrialKeyboard.yml'
@@ -89,7 +90,7 @@ jobs:
           assert keyboard["NSExtension"]["NSExtensionPointIdentifier"] == "com.apple.keyboard-service"
           assert keyboard["NSExtension"]["NSExtensionPrincipalClass"] == "TrialKeyboardExtension.KeyboardViewController"
           assert keyboard["CFBundleIdentifier"] == host["CFBundleIdentifier"] + ".extension"
-          assert keyboard["CFBundleShortVersionString"] == "0.9.0"
+          assert keyboard["CFBundleShortVersionString"] == "0.10.0"
           assert attrs["RequestsOpenAccess"] is True
           assert attrs["IsASCIICapable"] is True
           assert attrs["PrimaryLanguage"] == "en-US"
@@ -109,33 +110,37 @@ jobs:
           path: trial-build.log
           if-no-files-found: ignore
       - name: Publish Keyboard Lab unsigned IPA (optional)
-        if: github.ref == 'refs/heads/feature/smart-command-bar-v09'
+        if: github.ref == 'refs/heads/feature/adaptive-toolbar-v010'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: keyboard-lab-v0.9.0
-          name: "Keyboard Lab v0.9.0 - Universal Smart Command Bar"
+          tag_name: keyboard-lab-v0.10.0
+          name: "Keyboard Lab v0.10.0 - Adaptive Toolbar and Offline Completion"
           target_commitish: ${{ github.sha }}
           prerelease: true
           files: TrialKeyboard-unsigned.ipa
           fail_on_unmatched_files: true
           body: |
-            Keyboard Lab v0.9.0 adds the universal Smart Command Bar without
-            replacing the stable KeyboardKit key renderer.
+            Keyboard Lab v0.10.0 consolidates the keyboard interface into a
+            single adaptive toolbar while preserving the proven KeyboardKit
+            key renderer and script/command engine.
 
-            - Persistent command search field above keyboard in typing and tool modes.
-            - Native Menu listing 20 built-in tools, built-in JavaScript scripts,
-              custom scripts and recently used commands.
-            - Manifest-defined action label, SF Symbol, input validation and
-              inline or full-workspace result presentation.
-            - native.input() supplies explicit typed command text to JavaScriptCore,
-              independently of native.context() for the host app.
-            - Existing full-access and opt-in network gates remain enforced.
-            - Readable inline results with Insert actions, native script form
-              fields, and results-only workspace mode.
-            - Hebrew and English now use the SAME KeyboardKit renderer.
-              Custom character map is based on Apple-style iPad Hebrew rows.
-            - Height follows presentation mode, not the active text-field focus.
-            - Script Studio includes an editable native Command Bar Manifest.
-            - Existing v0.8.0 release remains available as a fallback.
-            - iOS release build + extension check; real device QA is still required.
-            - Unsigned IPA: install using an app/extension-capable signer.
+            - One KeyboardKit-owned 48pt toolbar: command picker, search,
+              manifest action button, and overflow menu.
+            - Local UITextChecker completions in the same toolbar while
+              typing in the host app (when available), with fallback word
+              suggestions for English and Hebrew. No network required.
+            - Keyboard actions, language switching, keyboard size, scripts,
+              From Cursor, and To App moved to a native overflow menu.
+            - Tool library opens as a full workspace; tapping search restores
+              the keyboard and filters the same tool grid without a second
+              search field.
+            - Default keyboard height is compact; results have a separate
+              height request; typing keys remain bottom anchored.
+            - Suggestions replace only the current word after checking that
+              the host caret context still matches. No automatic text changes.
+            - Existing JavaScript manifests, native.input(), results, and
+              network opt-in remain intact.
+            - Full Xcode 26.3 Release build/embedded .appex validation and
+              a dedicated manifest contract test on macOS.
+            - iPadOS 27 visual/focus/landscape QA is still required.
+            - Unsigned IPA: install with SideStore or equivalent signers.

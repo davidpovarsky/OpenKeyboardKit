@@ -4,12 +4,41 @@ import UIKit
 
 final class KeyboardViewController: KeyboardInputViewController {
     private var heightConstraint: NSLayoutConstraint?
-    private var expanded = true
+    private var expanded = false
+    private var resultsVisible = false
     // Presentation height is independent of the active internal input field.
     private var workspaceVisible = false
     private var lastRequestedHeight: CGFloat = 0
-    private let expansionKey = "keyboard.lab.expanded"
+    private let expansionKey = "keyboard.lab.v010.expanded"
     private let labInput = LabInputRouter()
+    private let completions = LabLocalCompletions()
+
+    private func refreshSuggestions() {
+        guard labInput.isHostTarget else {
+            completions.reset()
+            return
+        }
+        let isHebrew = UserDefaults.standard.bool(forKey: "keyboard.lab.hebrew.enabled")
+        completions.refresh(
+            contextBefore: textDocumentProxy.documentContextBeforeInput ?? "",
+            hebrew: isHebrew
+        )
+    }
+
+    private func applyCompletion(_ value: String) {
+        // Never delete host text based on stale suggestions or tool focus.
+        let fragment = completions.prefix
+        guard labInput.isHostTarget, fragment.count >= 2,
+              value.localizedCaseInsensitiveHasPrefix(fragment),
+              (textDocumentProxy.documentContextBeforeInput ?? "").hasSuffix(fragment),
+              textDocumentProxy.selectedText == nil else { return }
+        for _ in fragment {
+            textDocumentProxy.deleteBackward()
+        }
+        textDocumentProxy.insertText(value)
+        refreshSuggestions()
+    }
+
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -17,7 +46,7 @@ final class KeyboardViewController: KeyboardInputViewController {
         // The system decides which text fields can load third-party keyboards.
         // We use a normal keyboard extension so the same extension is available
         // through the globe key in other apps.
-        expanded = UserDefaults.standard.object(forKey: expansionKey) as? Bool ?? true
+        expanded = UserDefaults.standard.object(forKey: expansionKey) as? Bool ?? false
         setup(for: .trialKeyboard) { _ in }
 
         // Keep the existing KeyboardKit behavior outside tool mode.
@@ -36,6 +65,7 @@ final class KeyboardViewController: KeyboardInputViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         updateHeight()
+        refreshSuggestions()
     }
 
     override func viewDidLayoutSubviews() {
@@ -76,16 +106,22 @@ final class KeyboardViewController: KeyboardInputViewController {
             if workspaceVisible {
                 return min(800, max(500, availableHeight * 0.76))
             }
+            if resultsVisible {
+                return min(625, max(555, availableHeight * 0.58))
+            }
             return expanded
-                ? min(620, max(340, availableHeight * 0.57))
-                : min(375, max(270, availableHeight * 0.34))
+                ? min(620, max(380, availableHeight * 0.56))
+                : min(455, max(420, availableHeight * 0.43))
         }
         if workspaceVisible {
             return min(590, max(385, availableHeight * 0.68))
         }
+        if resultsVisible {
+            return min(480, max(325, availableHeight * 0.53))
+        }
         return expanded
             ? min(470, max(315, availableHeight * 0.52))
-            : min(305, max(245, availableHeight * 0.33))
+            : min(320, max(250, availableHeight * 0.37))
     }
 
     private func updateHeight() {
@@ -102,6 +138,7 @@ final class KeyboardViewController: KeyboardInputViewController {
         if labInput.isEditingTools && !labInput.isHostTarget {
             labInput.activateHost()
         }
+        refreshSuggestions()
     }
 
     override func textDidChange(_ textInput: UITextInput?) {
@@ -109,6 +146,7 @@ final class KeyboardViewController: KeyboardInputViewController {
         if labInput.isEditingTools && !labInput.isHostTarget {
             labInput.activateHost()
         }
+        refreshSuggestions()
     }
 
     override func viewWillSetupKeyboardView() {
@@ -127,6 +165,10 @@ final class KeyboardViewController: KeyboardInputViewController {
                 },
                 fullAccess: self?.hasFullAccess ?? false,
                 inputRouter: self?.labInput ?? LabInputRouter(),
+                completions: self?.completions ?? LabLocalCompletions(),
+                applyCompletion: { [weak self] value in
+                    self?.applyCompletion(value)
+                },
                 setExpanded: { [weak self] newValue in
                     guard let self else { return }
                     self.expanded = newValue
@@ -136,6 +178,11 @@ final class KeyboardViewController: KeyboardInputViewController {
                 setWorkspaceVisible: { [weak self] newValue in
                     guard let self else { return }
                     self.workspaceVisible = newValue
+                    self.updateHeight()
+                },
+                setResultsVisible: { [weak self] newValue in
+                    guard let self else { return }
+                    self.resultsVisible = newValue
                     self.updateHeight()
                 }
             )

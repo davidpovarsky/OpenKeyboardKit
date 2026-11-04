@@ -26,10 +26,11 @@ checks = {
     "caret and Unicode character boundaries supported": all(x in router for x in
         ["func moveCaret(", "source.index(source.startIndex", "source.index(before: to)"]),
     "real KeyboardKit handler installed": "services.actionHandler = handler" in controller,
-    "stable keyboard toolbar restored": all(x in shell for x in
-        ["Keyboard.Toolbar {", "HStack(spacing: 8)", "toolButton("]) and
-        "LabNativeToolbar" not in shell and
-        not (keyboard / "LabNativeChrome.swift").exists(),
+    "stable KeyboardKit toolbar owns the one adaptive command row":
+        all(x in shell for x in
+            ["Keyboard.Toolbar {", "toolbar", "standardKeyboard(toolbar: toolbar)"])
+        and "LabNativeToolbar" not in shell
+        and not (keyboard / "LabNativeChrome.swift").exists(),
     "Hebrew and English use one KeyboardKit key renderer":
         "LabHebrewLayout.make(for: keyboardContext)" in shell and
         "KeyboardView(" in shell and "useHebrew.toggle()" in shell and
@@ -38,17 +39,21 @@ checks = {
         all(x in read("LabHebrewLayout.swift") for x in
             ['["/", "׳", "ק", "ר", "א"', '["ש", "ד", "ג", "כ"', '["ז", "ס", "ב", "ה"',
              "KeyboardLayout.standard(for: context)", ".character(glyphs[offset])"]),
-    "native themed tool launcher": all(x in read("LabToolHome.swift") for x in
-        ["LabAnimatedTile", "LabSystemSearchField", "LabGlassHeader", ".introspect("]),
+    "tool launcher shares adaptive search rather than adding another":
+        all(x in read("LabToolHome.swift") for x in
+            ["LabAnimatedTile", "@Binding var search", ".introspect("])
+        and "LabSystemSearchField" not in read("LabToolHome.swift"),
     "glass UI and Pow effects": all(x in read("LabDesign.swift") for x in
         [".glassEffect(", ".changeEffect(.shine", ".sensoryFeedback(.selection", ".hoverEffect(.lift)"]),
     "glass buttons without nested UIToolbar": all(x in read("LabSystemChrome.swift") for x in
         ["Button(action: action)", ".buttonStyle(.glass)", ".buttonStyle(.glassProminent)",
          "GlassEffectContainer(spacing:", "LabGlassHeader"]) and
         "UIToolbar" not in read("TrialKeyboardView.swift"),
-    "keyboard toolbar remains KeyboardKit owned":
+    "single native toolbar with no extra keyboard action row":
         "Keyboard.Toolbar {" in shell and
-        "HStack(spacing: 8)" in shell and "LabGlassCommand(" in shell,
+        "keyboardView(AnyView(commandToolbar))" in read("LabSmartCommandBar.swift")
+        and "private var commandToolbar" in read("LabSmartCommandBar.swift")
+        and "toolButton(" not in shell,
     "system menu support retained without duplicating chooser":
         all(x in read("LabSystemChrome.swift") for x in
             ["UIButton.Configuration", ".glass()", "UIMenu(title:", "UIAction("]) and
@@ -58,10 +63,11 @@ checks = {
         all(x in read("LabSystemChrome.swift") for x in
             ["UISearchBar(frame:", "bar.isUserInteractionEnabled = false",
              "router.focus(id, binding: $text", ".allowsHitTesting(false)"]),
-    "system search integrated in all searches":
-        "LabSystemSearchField" in read("LabToolHome.swift") and
-        "LabSystemSearchField" in read("LabToolPage.swift") and
-        "LabSystemSearchField" in read("LabGIFPanel.swift"),
+    "system search shared for tool browsing":
+        "LabSystemSearchField" in read("LabSmartCommandBar.swift") and
+        "id: \"launcher.search\"" in read("LabSmartCommandBar.swift") and
+        "LabSystemSearchField" in read("LabToolPage.swift")
+        and "LabSystemSearchField" in read("LabGIFPanel.swift"),
     "Script Studio has only one visible toolbar header":
         "if tool != .scripts {" in read("LabToolPage.swift")
         and "LabGlassHeader(" in read("ScriptStudioView.swift"),
@@ -75,10 +81,11 @@ checks = {
     ),
     "native GIF previews": all(x in read("LabGIFPanel.swift") for x in
         [".contextMenu {", "preview: {", "Copy GIF", "Copy Source Link"]),
-    "smart command bar is persistent and outside keyboard toolbar": all(x in shell for x in
-        ["LabSmartCommandBar(", "standardKeyboard", "Keyboard.Toolbar {",
-         "if showsKeys {", "setWorkspaceVisible("]) and
-        shell.index("LabSmartCommandBar(") < shell.index("standardKeyboard\n                    .fixedSize"),
+    "adaptive command row persists inside standard key toolbar":
+        all(x in shell for x in
+            ["LabSmartCommandBar(", "standardKeyboard(toolbar: toolbar)",
+             "Keyboard.Toolbar {", "setWorkspaceVisible("])
+        and "keyboardView(AnyView(commandToolbar))" in read("LabSmartCommandBar.swift"),
     "native command chooser includes tools and scripts": all(x in read("LabSmartCommandBar.swift") for x in
         ["Menu {", "ForEach(LabTool.allCases)", "ForEach(availableScripts)",
          "ScriptLibrary.scripts + scriptRunner.customScripts", "recentIDs"]),
@@ -89,8 +96,29 @@ checks = {
         ["private var resultPanel:", "resultRow(", "LabEditableField(",
          "scriptRunner.fireAction(", "insertText(insertion)"]),
     "command bar supports results-only workspace": all(x in read("TrialKeyboardView.swift") for x in
-        ["setWorkspaceVisible: (Bool) -> Void", "showsKeys = true", "if showsKeys {"]) and
-        "setKeyboardVisible(false)" in read("LabSmartCommandBar.swift"),
+        ["setWorkspaceVisible: (Bool) -> Void", "showsKeys = true",
+         "setResultsVisible: (Bool) -> Void", "if !visible {"]) and
+        "setKeyboardVisible(!isKeyboardVisible)" in read("LabSmartCommandBar.swift"),
+    "offline native word suggestions without network":
+        all(x in read("LabLocalCompletions.swift") for x in
+            ["UITextChecker()", "completions(forPartialWordRange:",
+             "fallbackEnglish", "fallbackHebrew", "static func partialWord("])
+        and "URLSession" not in read("LabLocalCompletions.swift"),
+    "suggestions replace current word safely in host":
+        all(x in controller for x in
+            ["private func applyCompletion(", "labInput.isHostTarget",
+             "textDocumentProxy.selectedText == nil",
+             "textDocumentProxy.deleteBackward()",
+             "textDocumentProxy.insertText(value)"]),
+    "adaptive toolbar switches predictions and search":
+        all(x in read("LabSmartCommandBar.swift") for x in
+            ["private var showPredictions", "ForEach(completions.suggestions",
+             "applyCompletion(suggestion)", "showsCommandInput = true"]),
+    "compact keyboard defaults on and workspace hides keys":
+        'private var expanded = false' in controller
+        and 'private var expanded = false' in shell or '@AppStorage("keyboard.lab.v010.expanded") private var expanded = false' in shell
+        and 'showsKeys = false' in shell
+        and 'onChange(of: inputRouter.activeKey)' in shell,
     "height no longer jumps when typing into command field":
         "if workspaceVisible {" in controller and
         "if labInput.isEditingTools {" not in controller,

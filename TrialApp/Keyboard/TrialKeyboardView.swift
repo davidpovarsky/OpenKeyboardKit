@@ -18,33 +18,36 @@ struct TrialKeyboardView: View {
     let readContext: () -> String
     let fullAccess: Bool
     @ObservedObject var inputRouter: LabInputRouter
+    @ObservedObject var completions: LabLocalCompletions
+    let applyCompletion: (String) -> Void
+    let refreshSuggestions: () -> Void
     let setExpanded: (Bool) -> Void
     let setWorkspaceVisible: (Bool) -> Void
+    let setResultsVisible: (Bool) -> Void
 
     @EnvironmentObject private var keyboardContext: KeyboardContext
     @State private var screen: LabScreen = .typing
     @AppStorage("keyboard.lab.hebrew.enabled") private var useHebrew = false
     @State private var showsKeys = true
     @State private var scriptReloadToken = 0
-    @AppStorage("keyboard.lab.expanded") private var expanded = true
+    @State private var isResultsShowing = false
+    @State private var toolSearch = ""
+    @AppStorage("keyboard.lab.v010.expanded") private var expanded = false
     @AppStorage("keyboard.lab.theme") private var themeName = LabTheme.classic.rawValue
 
     var body: some View {
         VStack(spacing: 0) {
-            if screen == .typing {
-                if showsKeys {
-                    if expanded {
-                        LabQuickAccess(open: openTool, showAll: openLibrary)
-                    }
-                    Spacer(minLength: 0)
-                }
-            } else {
+            if screen != .typing {
                 Group {
                     switch screen {
                     case .typing:
                         EmptyView()
                     case .tools:
-                        LabToolHome(onSelect: openTool, onClose: returnToTyping)
+                        LabToolHome(
+                            onSelect: openTool,
+                            onClose: returnToTyping,
+                            search: $toolSearch
+                        )
                     case .detail(let tool):
                         LabToolPage(
                             tool: tool,
@@ -58,33 +61,43 @@ struct TrialKeyboardView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                // Cursor navigation is useful for internal multiline editors,
-                // but redundant while browsing tools or editing command input.
                 if inputRouter.activeKey != nil &&
-                   inputRouter.activeKey != "command.bar.input" {
+                   inputRouter.activeKey != "command.bar.input" &&
+                   inputRouter.activeKey != "launcher.search" {
                     LabInputAccessory()
                 }
             }
 
-            // This command bar is OUTSIDE Keyboard.Toolbar so it cannot
-            // change KeyboardKit's intrinsic key layout or input view host.
             LabSmartCommandBar(
+                completions: completions,
                 insertText: insertText,
                 readContext: readContext,
                 fullAccess: fullAccess,
                 isKeyboardVisible: showsKeys,
                 setKeyboardVisible: updateKeyVisibility,
                 openTool: openTool,
-                scriptReloadToken: scriptReloadToken
+                scriptReloadToken: scriptReloadToken,
+                toolSearch: $toolSearch,
+                isToolsOpen: screen == .tools,
+                isHebrew: useHebrew,
+                switchLanguage: { useHebrew.toggle() },
+                openLibrary: openLibrary,
+                returnToTyping: returnToTyping,
+                openScripts: { openTool(.scripts) },
+                changeHeight: changeHeight,
+                applyCompletion: applyCompletion,
+                setResultsVisible: { visible in
+                    isResultsShowing = visible
+                    setPresentationHeight()
+                },
+                keyboardView: { toolbar in
+                    AnyView(
+                        standardKeyboard(toolbar: toolbar)
+                            .fixedSize(horizontal: false, vertical: true)
+                    )
+                }
             )
             .fixedSize(horizontal: false, vertical: true)
-
-            // Keep key rendering bottom-pinned. A full workspace hides keys
-            // intentionally and restores them on focus of any internal field.
-            if showsKeys {
-                standardKeyboard
-                    .fixedSize(horizontal: false, vertical: true)
-            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         .background(LabDesign.canvas)
@@ -92,17 +105,20 @@ struct TrialKeyboardView: View {
         .onAppear {
             inputRouter.setToolMode(true)
             setExpanded(expanded)
-            setWorkspaceVisible(screen != .typing || !showsKeys)
+            setPresentationHeight()
         }
         .onChange(of: screen) { newValue in
             inputRouter.setToolMode(true)
-            setWorkspaceVisible(newValue != .typing || !showsKeys)
+            setPresentationHeight()
             if newValue != .detail(.scripts) {
                 scriptReloadToken += 1
             }
         }
         .onChange(of: showsKeys) { visible in
-            setWorkspaceVisible(screen != .typing || !visible)
+            setPresentationHeight()
+        }
+        .onChange(of: useHebrew) { _ in
+            refreshSuggestions()
         }
         .onChange(of: inputRouter.activeKey) { active in
             if active != nil && !showsKeys {
@@ -110,6 +126,12 @@ struct TrialKeyboardView: View {
             }
         }
     }
+
+    private func setPresentationHeight() {
+        setWorkspaceVisible(screen != .typing || !showsKeys)
+        setResultsVisible(isResultsShowing && showsKeys)
+    }
+
 
     private func updateKeyVisibility(_ visible: Bool) {
         if visible == showsKeys { return }
@@ -124,6 +146,8 @@ struct TrialKeyboardView: View {
     private func openLibrary() {
         inputRouter.unfocus()
         screen = .tools
+        // Open full workspace instead of squeezing cards above keys.
+        showsKeys = false
     }
 
     private func returnToTyping() {
@@ -134,8 +158,9 @@ struct TrialKeyboardView: View {
 
     private func openTool(_ tool: LabTool) {
         inputRouter.unfocus()
-        expanded = true
         screen = .detail(tool)
+        // Tool pages can use the entire extension until an input is selected.
+        showsKeys = false
     }
 
     private func changeHeight() {
@@ -144,7 +169,7 @@ struct TrialKeyboardView: View {
         setExpanded(expanded)
     }
 
-    private var standardKeyboard: some View {
+    private func standardKeyboard(toolbar: AnyView) -> some View {
         KeyboardView(
             layout: useHebrew
                 ? LabHebrewLayout.make(for: keyboardContext)
@@ -157,51 +182,10 @@ struct TrialKeyboardView: View {
             emojiKeyboard: { $0.view },
             toolbar: { _ in
                 Keyboard.Toolbar {
-                    HStack(spacing: 8) {
-                        toolButton(
-                            screen == .typing ? "Tools" : "Keyboard",
-                            symbol: screen == .typing ? "square.grid.2x2" : "keyboard"
-                        ) {
-                            if screen == .typing { openLibrary() }
-                            else { returnToTyping() }
-                        }
-                        toolButton(useHebrew ? "English" : "עברית", symbol: "globe") {
-                            useHebrew.toggle()
-                        }
-
-                        Spacer(minLength: 6)
-
-                        toolButton("Scripts", symbol: "curlybraces.square") {
-                            openTool(.scripts)
-                        }
-                        if screen == .typing {
-                            toolButton(
-                                expanded ? "Compact" : "Expand",
-                                symbol: expanded
-                                    ? "arrow.down.right.and.arrow.up.left"
-                                    : "arrow.up.left.and.arrow.down.right"
-                            ) {
-                                changeHeight()
-                            }
-                        } else {
-                            toolButton("Done", symbol: "checkmark.circle") {
-                                inputRouter.activateHost()
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 10)
-                    .frame(maxWidth: .infinity)
+                    toolbar
                 }
             }
         )
     }
 
-    private func toolButton(_ title: String, symbol: String,
-                            action: @escaping () -> Void) -> some View {
-        // Preserve the proven Keyboard.Toolbar / HStack layout from v0.7.1.
-        // Only the button style is upgraded, not the toolbar ownership.
-        LabGlassCommand(title: title, symbol: symbol,
-                        compact: UIDevice.current.userInterfaceIdiom != .pad,
-                        action: action)
-    }
 }

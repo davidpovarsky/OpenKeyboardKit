@@ -5,8 +5,7 @@ import SwiftUIIntrospect
 struct LabToolHome: View {
     let onSelect: (LabTool) -> Void
     let onClose: () -> Void
-
-    @State private var search = ""
+    @Binding var search: String
     @State private var filter = 0
     @AppStorage("keyboard.lab.theme") private var themeName = LabTheme.classic.rawValue
     @AppStorage("keyboard.lab.favorites") private var pinnedIDs =
@@ -27,25 +26,19 @@ struct LabToolHome: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            LabGlassHeader(
-                title: "Your workspace",
-                subtitle: "Everything you need, where you type",
-                symbol: "square.stack.3d.up.fill",
-                back: onClose,
-                close: { withAnimation(.smooth(duration: 0.22)) {
-                    filter = filter == 1 ? 0 : 1
-                } },
-                closeTitle: filter == 1 ? "All Tools" : "Favorites",
-                closeSymbol: filter == 1 ? "square.grid.2x2" : "star"
-            )
-
-            LabSystemSearchField(
-                id: "launcher.search",
-                text: $search,
-                placeholder: "Search all tools"
-            )
-            .padding(.horizontal, 7)
-            .padding(.bottom, 5)
+            HStack(spacing: 10) {
+                Label("Your workspace", systemImage: "square.stack.3d.up")
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                Button(action: onClose) {
+                    Label("Back to keyboard", systemImage: "keyboard")
+                        .labelStyle(.iconOnly)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
 
             HStack(spacing: 8) {
                 Picker("View", selection: $filter) {

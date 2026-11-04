@@ -26,6 +26,8 @@ struct LabSmartCommandBar: View {
     @State private var outputVisible = false
     @State private var localResults: [LabCommandResult] = []
     @State private var fieldValues: [String: String] = [:]
+    @State private var showsCommandInput = false
+    @ObservedObject var completions: LabLocalCompletions
 
     let insertText: (String) -> Void
     let readContext: () -> String
@@ -34,6 +36,17 @@ struct LabSmartCommandBar: View {
     let setKeyboardVisible: (Bool) -> Void
     let openTool: (LabTool) -> Void
     let scriptReloadToken: Int
+    @Binding var toolSearch: String
+    let isToolsOpen: Bool
+    let isHebrew: Bool
+    let switchLanguage: () -> Void
+    let openLibrary: () -> Void
+    let returnToTyping: () -> Void
+    let openScripts: () -> Void
+    let changeHeight: () -> Void
+    let applyCompletion: (String) -> Void
+    let setResultsVisible: (Bool) -> Void
+    let keyboardView: (AnyView) -> AnyView
 
     private let inputID = "command.bar.input"
 
@@ -105,86 +118,21 @@ struct LabSmartCommandBar: View {
     }
 
     var body: some View {
-        VStack(spacing: 5) {
+        VStack(spacing: 0) {
             if outputVisible {
                 resultPanel
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
-
-            HStack(spacing: 6) {
-                chooser
-
-                LabSystemSearchField(
-                    id: inputID,
-                    text: $query,
-                    placeholder: activeManifest.input.placeholder,
-                    onSubmit: run
-                )
-                .frame(maxWidth: .infinity, minHeight: 46)
-
-                LabGlassCommand(
-                    title: activeManifest.action.title,
-                    symbol: activeManifest.action.symbol,
-                    compact: true,
-                    prominent: true,
-                    action: run
-                )
-                .disabled(loading || (activeManifest.input.required
-                            && query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
-                .accessibilityHint("Run " + title + " with the text in the command field")
+            // The command row is the single real KeyboardKit toolbar.
+            // When the user intentionally expands results instead of keys,
+            // the same toolbar remains accessible as a standalone row.
+            if isKeyboardVisible {
+                keyboardView(AnyView(commandToolbar))
+            } else {
+                commandToolbar
+                    .background(.thinMaterial)
             }
-            .padding(.horizontal, 6)
-            .frame(height: 53)
-
-            HStack(spacing: 9) {
-                if loading {
-                    ProgressView().controlSize(.mini)
-                } else {
-                    Image(systemName: router.activeKey == inputID
-                          ? "text.cursor" : "keyboard")
-                        .font(.system(size: 11))
-                }
-
-                Text(router.activeKey == inputID
-                     ? "Input: " + title : "Typing in app")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-
-                Spacer(minLength: 0)
-
-                Button {
-                    let before = readContext()
-                    query = String(before.suffix(activeManifest.input.maxLength))
-                    router.focus(inputID, binding: $query, onReturn: run)
-                    setKeyboardVisible(true)
-                } label: {
-                    Label("From cursor", systemImage: "text.cursor")
-                }
-                .disabled(!isKeyboardVisible)
-
-                Button {
-                    router.activateHost()
-                } label: {
-                    Label("To App", systemImage: "arrow.up.right.square")
-                }
-
-                Button {
-                    setKeyboardVisible(!isKeyboardVisible)
-                } label: {
-                    Label(isKeyboardVisible ? "Expand" : "Keyboard",
-                          systemImage: isKeyboardVisible ? "arrow.up.left.and.arrow.down.right"
-                                                         : "keyboard")
-                }
-            }
-            .font(.system(size: 10, weight: .medium))
-            .buttonStyle(.plain)
-            .labelStyle(.titleAndIcon)
-            .padding(.horizontal, 12)
-            .frame(height: 29)
         }
-        .padding(.vertical, 4)
-        .background(.thinMaterial)
         .onAppear {
             scriptRunner.reloadCustomScripts()
             if selectedTool == nil && selectedScript == nil {
@@ -196,12 +144,160 @@ struct LabSmartCommandBar: View {
                 query = String(newValue.prefix(activeManifest.input.maxLength))
             }
         }
+        .onChange(of: outputVisible) { visible in
+            setResultsVisible(visible)
+        }
         .onChange(of: scriptReloadToken) { _ in
             scriptRunner.reloadCustomScripts()
             if selectedTool == nil && selectedScript == nil {
                 selection = "tool:sefaria"
             }
         }
+    }
+
+    private var showPredictions: Bool {
+        !isToolsOpen && !showsCommandInput &&
+        router.isHostTarget && !completions.suggestions.isEmpty
+    }
+
+    private var commandToolbar: some View {
+        HStack(spacing: 5) {
+            if isToolsOpen {
+                Label("Tools", systemImage: "square.grid.2x2.fill")
+                    .font(.system(size: 11, weight: .semibold))
+                    .labelStyle(.iconOnly)
+                    .foregroundStyle(.indigo)
+                    .padding(.horizontal, 5)
+            } else {
+                chooser
+            }
+
+            if showPredictions {
+                HStack(spacing: 0) {
+                    ForEach(completions.suggestions, id: \.self) { suggestion in
+                        Button {
+                            applyCompletion(suggestion)
+                        } label: {
+                            Text(suggestion)
+                                .font(.system(size: 13))
+                                .lineLimit(1)
+                                .frame(maxWidth: .infinity, minHeight: 37)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        if suggestion != completions.suggestions.last {
+                            Divider().frame(height: 19)
+                        }
+                    }
+                }
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                .frame(maxWidth: .infinity)
+            } else if isToolsOpen {
+                LabSystemSearchField(
+                    id: "launcher.search",
+                    text: $toolSearch,
+                    placeholder: "Search tools"
+                )
+                .frame(maxWidth: .infinity, minHeight: 43)
+            } else {
+                LabSystemSearchField(
+                    id: inputID,
+                    text: $query,
+                    placeholder: activeManifest.input.placeholder,
+                    onSubmit: run
+                )
+                .frame(maxWidth: .infinity, minHeight: 43)
+            }
+
+            if isToolsOpen {
+                compactAction("Done", symbol: "checkmark", action: returnToTyping)
+            } else if showPredictions {
+                compactAction("Command", symbol: "magnifyingglass") {
+                    showsCommandInput = true
+                    router.focus(inputID, binding: $query, onReturn: run)
+                }
+            } else {
+                LabGlassCommand(
+                    title: activeManifest.action.title,
+                    symbol: activeManifest.action.symbol,
+                    compact: true, prominent: true, action: run
+                )
+                .disabled(loading || (activeManifest.input.required &&
+                    query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
+                .accessibilityHint("Run " + title + " with command input")
+            }
+
+            Menu {
+                Section("Workspace") {
+                    Button(action: isToolsOpen ? returnToTyping : openLibrary) {
+                        Label(isToolsOpen ? "Keyboard" : "All Tools",
+                              systemImage: isToolsOpen ? "keyboard" : "square.grid.2x2")
+                    }
+                    Button(action: openScripts) {
+                        Label("Script Studio", systemImage: "curlybraces.square")
+                    }
+                    Button(action: switchLanguage) {
+                        Label(isHebrew ? "English" : "עברית", systemImage: "globe")
+                    }
+                    Button(action: changeHeight) {
+                        Label("Change keyboard size",
+                              systemImage: "arrow.up.left.and.arrow.down.right")
+                    }
+                    Button {
+                        setKeyboardVisible(!isKeyboardVisible)
+                    } label: {
+                        Label(isKeyboardVisible ? "Expand results" : "Show keys",
+                              systemImage: isKeyboardVisible ? "arrow.up.left.and.arrow.down.right" : "keyboard")
+                    }
+                    .disabled(isKeyboardVisible && !outputVisible)
+                }
+
+                Section("Input") {
+                    Button {
+                        let before = readContext()
+                        query = String(before.suffix(activeManifest.input.maxLength))
+                        showsCommandInput = true
+                        router.focus(inputID, binding: $query, onReturn: run)
+                        setKeyboardVisible(true)
+                    } label: {
+                        Label("From cursor", systemImage: "text.cursor")
+                    }
+                    Button {
+                        router.activateHost()
+                        showsCommandInput = false
+                    } label: {
+                        Label("Type in App", systemImage: "arrow.up.right.square")
+                    }
+                    Button {
+                        showsCommandInput = true
+                        router.focus(inputID, binding: $query, onReturn: run)
+                        setKeyboardVisible(true)
+                    } label: {
+                        Label("Command input", systemImage: "magnifyingglass")
+                    }
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 17, weight: .medium))
+                    .frame(minWidth: 32, minHeight: 35)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .accessibilityLabel("Keyboard actions")
+        }
+        .frame(height: 48)
+        .padding(.horizontal, 7)
+        .onChange(of: router.activeKey) { active in
+            if active == inputID { showsCommandInput = true }
+            else if active == nil { showsCommandInput = false }
+        }
+    }
+
+    private func compactAction(_ title: String, symbol: String,
+                               action: @escaping () -> Void) -> some View {
+        LabGlassCommand(title: title, symbol: symbol,
+                        compact: true, action: action)
     }
 
     private var chooser: some View {
