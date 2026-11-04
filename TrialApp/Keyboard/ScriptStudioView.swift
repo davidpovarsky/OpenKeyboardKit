@@ -9,51 +9,48 @@ struct ScriptStudioView: View {
 
     @StateObject private var model = ScriptStudioModel()
     @AppStorage("keyboard.trial.allowNetwork") private var allowNetwork = false
-    @State private var showCode = false
-    @State private var lastScript: KeyboardScript?
 
-    private let background = Color(uiColor: .secondarySystemBackground)
+    @State private var editing = false
+    @State private var codeTitle = ""
+    @State private var codeSource = ""
+    @State private var editingID: String?
+    @State private var currentScript: KeyboardScript?
+    @State private var fieldValues: [String: String] = [:]
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
                 Button(action: onClose) {
-                    Image(systemName: "chevron.backward")
+                    Image(systemName: "chevron.left")
                         .font(.system(size: 16, weight: .semibold))
-                        .frame(width: 38, height: 36)
+                        .frame(width: 36, height: 35)
                 }
-                .accessibilityLabel("חזור למקלדת")
-
+                .buttonStyle(.plain)
                 Image(systemName: "curlybraces.square.fill")
-                    .font(.title2)
-                    .foregroundStyle(.indigo)
+                    .font(.title2).foregroundStyle(.indigo)
                 Text("Script Studio")
                     .font(.system(size: 17, weight: .semibold))
                 Spacer()
-                Text("JSCore")
-                    .font(.caption2.monospaced().weight(.medium))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
-                    .background(.thinMaterial, in: Capsule())
+                if editing {
+                    Button("Cancel") { editing = false }
+                        .font(.caption.weight(.medium))
+                } else {
+                    Button {
+                        openEditor(nil)
+                    } label: {
+                        Label("New JS", systemImage: "plus")
+                            .font(.caption.weight(.semibold))
+                    }
+                    .buttonStyle(.bordered)
+                }
             }
-            .padding(.horizontal, 14)
-            .frame(height: 48)
+            .padding(.horizontal, 12)
+            .frame(height: 50)
 
             Divider()
 
-            if showCode, let script = lastScript {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Button("חזור לתוצאות") { showCode = false }
-                            .buttonStyle(.bordered)
-                        Text(script.source)
-                            .font(.system(size: 12, design: .monospaced))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .textSelection(.enabled)
-                    }
-                    .padding(14)
-                }
+            if editing {
+                editor
             } else if let panel = model.panel {
                 panelView(panel)
             } else {
@@ -61,40 +58,38 @@ struct ScriptStudioView: View {
             }
 
             Divider()
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 Button {
                     if fullAccess {
                         allowNetwork.toggle()
                     } else {
-                        model.status = "הגדרות > מקלדות > Keyboard Trial > אפשר גישה מלאה"
+                        model.status = "Enable Full Access for Keyboard Lab in iPad Settings."
                     }
                 } label: {
-                    Label(allowNetwork && fullAccess ? "Network On" : "Network Off", systemImage: allowNetwork && fullAccess ? "wifi" : "wifi.slash")
+                    Label(allowNetwork && fullAccess ? "Network On" : "Network Off",
+                          systemImage: allowNetwork && fullAccess ? "wifi" : "wifi.slash")
                         .font(.caption.weight(.medium))
                 }
                 .buttonStyle(.bordered)
                 .tint(allowNetwork && fullAccess ? .green : .secondary)
-                .accessibilityLabel("הפעל או כבה גישת רשת לסקריפטים")
 
-                Spacer(minLength: 4)
+                Spacer(minLength: 2)
 
-                if lastScript != nil {
-                    Button(showCode ? "תוצאות" : "קוד") { showCode.toggle() }
-                        .font(.caption.weight(.medium))
-                        .buttonStyle(.bordered)
+                if let script = currentScript, !editing {
+                    Button("Code") { openEditor(script) }
+                        .font(.caption).buttonStyle(.bordered)
                 }
 
                 Button {
                     model.canReadClipboard = fullAccess
                     model.installFromClipboard()
                 } label: {
-                    Label("ייבא JS", systemImage: "doc.on.clipboard")
+                    Label("Import", systemImage: "doc.on.clipboard")
                         .font(.caption.weight(.medium))
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.indigo)
             }
-            .padding(.horizontal, 14)
+            .padding(.horizontal, 12)
             .padding(.vertical, 8)
 
             HStack(spacing: 7) {
@@ -105,47 +100,57 @@ struct ScriptStudioView: View {
                         .foregroundStyle(fullAccess ? .green : .orange)
                 }
                 Text(model.status)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .font(.caption2).foregroundStyle(.secondary)
                     .lineLimit(2)
-                Spacer()
+                Spacer(minLength: 2)
             }
-            .padding(.horizontal, 17)
-            .padding(.bottom, 10)
+            .padding(.horizontal, 14)
+            .padding(.bottom, 8)
         }
-        .background(background)
+        .background(Color(uiColor: .secondarySystemBackground))
+        .onDisappear { model.stop() }
     }
 
     private var library: some View {
         ScrollView {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), spacing: 12)], spacing: 12) {
-                ForEach(ScriptLibrary.scripts + model.customScripts) { script in
-                    Button {
-                        run(script)
-                    } label: {
-                        VStack(alignment: .leading, spacing: 7) {
-                            Image(systemName: script.symbol)
-                                .font(.title2)
-                                .foregroundStyle(.indigo)
-                            Text(script.title)
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.primary)
-                            Text(script.detail)
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.leading)
-                            Spacer(minLength: 0)
+            VStack(alignment: .leading, spacing: 14) {
+                Label("JavaScript tools", systemImage: "square.grid.2x2")
+                    .font(.subheadline.weight(.semibold))
+                Text("Scripts run inside the keyboard via JavaScriptCore. Interfaces are native SwiftUI.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), spacing: 12)],
+                          spacing: 12) {
+                    ForEach(ScriptLibrary.scripts + model.customScripts) { script in
+                        Button { run(script) } label: {
+                            VStack(alignment: .leading, spacing: 7) {
+                                Image(systemName: script.symbol)
+                                    .font(.title2)
+                                    .foregroundStyle(.indigo)
+                                Text(script.title)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.primary)
+                                Text(script.detail)
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                                Spacer(minLength: 0)
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 105, alignment: .leading)
+                            .padding(12)
+                            .background(Color.indigo.opacity(0.09),
+                                        in: RoundedRectangle(cornerRadius: 15))
                         }
-                        .frame(maxWidth: .infinity, minHeight: 105, alignment: .leading)
-                        .padding(12)
-                        .background(Color(uiColor: .tertiarySystemBackground), in: RoundedRectangle(cornerRadius: 15))
-                    }
-                    .buttonStyle(.plain)
-                    .contextMenu {
-                        if !script.isBuiltIn {
-                            Button(role: .destructive) { model.delete(script) } label: {
-                                Label("מחק סקריפט", systemImage: "trash")
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button(script.isBuiltIn ? "Copy as custom" : "Edit") {
+                                openEditor(script)
+                            }
+                            if !script.isBuiltIn {
+                                Button(role: .destructive) { model.delete(script) } label: {
+                                    Label("Delete script", systemImage: "trash")
+                                }
                             }
                         }
                     }
@@ -153,6 +158,55 @@ struct ScriptStudioView: View {
             }
             .padding(14)
         }
+    }
+
+    private var editor: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            TextField("Script title", text: $codeTitle)
+                .font(.subheadline.weight(.semibold))
+                .padding(10)
+                .background(Color(uiColor: .tertiarySystemBackground),
+                            in: RoundedRectangle(cornerRadius: 12))
+
+            TextEditor(text: $codeSource)
+                .font(.system(size: 12, design: .monospaced))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .scrollContentBackground(.hidden)
+                .padding(9)
+                .background(Color(uiColor: .tertiarySystemBackground),
+                            in: RoundedRectangle(cornerRadius: 13))
+
+            HStack(spacing: 8) {
+                Button("Save") {
+                    if model.saveCustom(title: codeTitle, source: codeSource, replacing: editingID) {
+                        editing = false
+                        currentScript = nil
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button("Save & Run") {
+                    if model.saveCustom(title: codeTitle, source: codeSource, replacing: editingID) {
+                        editing = false
+                        if let saved = model.customScripts.first(where: {
+                            $0.id == (editingID ?? "")
+                        }) {
+                            run(saved)
+                        } else if let saved = model.customScripts.last {
+                            run(saved)
+                        }
+                    }
+                }
+                .buttonStyle(.bordered)
+
+                Spacer()
+                Text("\(codeSource.utf8.count) / 50 KB")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            LabHint(text: "Only run code you trust. With Network On, scripts can send visible typing context to remote services.")
+        }
+        .padding(12)
     }
 
     private func panelView(_ panel: ScriptPanel) -> some View {
@@ -172,20 +226,49 @@ struct ScriptStudioView: View {
                     Spacer()
                     Button {
                         model.panel = nil
-                        model.status = "בחר סקריפט"
+                        model.status = "Choose a script"
                     } label: {
                         Image(systemName: "square.grid.2x2")
                             .font(.title3)
                     }
-                    .accessibilityLabel("חזור לספריית הסקריפטים")
+                    .accessibilityLabel("Back to scripts")
                 }
-                .padding(.bottom, 4)
+
+                ForEach(panel.fields ?? []) { field in
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(field.title ?? field.id)
+                            .font(.caption.weight(.medium))
+                        TextField(field.placeholder ?? "Enter text", text: Binding(
+                            get: { fieldValues[field.id] ?? field.value ?? "" },
+                            set: { fieldValues[field.id] = $0 }
+                        ))
+                        .font(.subheadline)
+                        .padding(11)
+                        .background(Color(uiColor: .tertiarySystemBackground),
+                                    in: RoundedRectangle(cornerRadius: 11))
+                    }
+                }
+
+                ForEach(panel.buttons ?? []) { button in
+                    Button {
+                        if let insertion = button.insert {
+                            insertText(insertion)
+                        } else {
+                            model.fireAction(button.id, values: fieldValues)
+                        }
+                    } label: {
+                        Label(button.title, systemImage: button.symbol ?? "bolt")
+                            .font(.system(size: 13, weight: .semibold))
+                            .frame(maxWidth: .infinity, minHeight: 40)
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
 
                 ForEach(panel.rows ?? []) { row in
                     Button {
                         if let value = row.insert {
                             insertText(value)
-                            model.status = "הטקסט הוכנס"
+                            model.status = "Text inserted"
                         }
                     } label: {
                         HStack(spacing: 12) {
@@ -203,22 +286,39 @@ struct ScriptStudioView: View {
                                 }
                             }
                             Spacer()
-                            Image(systemName: "text.insert")
-                                .foregroundStyle(.indigo)
+                            Image(systemName: "text.insert").foregroundStyle(.indigo)
                         }
-                        .padding(14)
-                        .background(Color(uiColor: .tertiarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
+                        .padding(13)
+                        .background(Color(uiColor: .tertiarySystemBackground),
+                                    in: RoundedRectangle(cornerRadius: 14))
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(16)
+            .padding(14)
         }
     }
 
+    private func openEditor(_ script: KeyboardScript?) {
+        editing = true
+        editingID = script?.isBuiltIn == false ? script?.id : nil
+        codeTitle = script?.title ?? "My Script"
+        codeSource = script?.source ?? """
+            native.ui({
+              title: "Hello",
+              message: "A native SwiftUI panel created by JavaScript.",
+              fields: [{id: "name", title: "Name", placeholder: "Your name"}],
+              buttons: [{id: "greet", title: "Insert greeting", symbol: "heart"}]
+            });
+            native.onAction = (id, values) => {
+              if (id === "greet") native.insert("Hello " + (values.name || "there"));
+            };
+            """
+    }
+
     private func run(_ script: KeyboardScript) {
-        lastScript = script
-        showCode = false
+        currentScript = script
+        fieldValues = [:]
         model.run(
             script,
             readContext: readContext,

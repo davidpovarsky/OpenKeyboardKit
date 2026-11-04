@@ -107,6 +107,20 @@ final class ScriptStudioModel: ObservableObject {
               }
             };
             """)
+        js.evaluateScript("""
+            native.request = function(options, callback) {
+              var id = String(++__callbackIndex);
+              __callbacks[id] = callback;
+              __keyboardNative.send(JSON.stringify({
+                type: "request", id: id, options: options
+              }));
+            };
+            function __dispatchAction(id, values) {
+              if (typeof native.onAction === "function") {
+                native.onAction(id, values);
+              }
+            }
+            """)
         js.evaluateScript(script.source)
     }
 
@@ -145,12 +159,24 @@ final class ScriptStudioModel: ObservableObject {
             let url = command["url"] as? String ?? ""
             let id = command["id"] as? String ?? ""
             fetch(url: url, callbackId: id)
+        case "request":
+            let id = command["id"] as? String ?? ""
+            let options = command["options"] as? [String: Any] ?? [:]
+            let method = options["method"] as? String ?? "GET"
+            let url = options["url"] as? String ?? ""
+            let body = options["body"] as? String
+            fetch(url: url, callbackId: id, method: method, body: body)
         default:
             status = "פקודה לא מוכרת: " + type
         }
     }
 
-    private func fetch(url: String, callbackId: String) {
+    private func fetch(
+        url: String,
+        callbackId: String,
+        method: String = "GET",
+        body: String? = nil
+    ) {
         guard canFetch else {
             finish(id: callbackId, error: "הפעל Full Access והרשאת רשת במסך הסקריפטים", body: nil)
             return
@@ -161,13 +187,26 @@ final class ScriptStudioModel: ObservableObject {
             finish(id: callbackId, error: "נדרשת כתובת HTTPS תקינה", body: nil)
             return
         }
+        let verb = method.uppercased()
+        guard ["GET", "POST"].contains(verb) else {
+            finish(id: callbackId, error: "Only GET and POST are supported.", body: nil)
+            return
+        }
+        if let body, body.utf8.count > 100_000 {
+            finish(id: callbackId, error: "Request body exceeds 100 KB.", body: nil)
+            return
+        }
         isLoading = true
         status = "מבצע בקשת רשת..."
         let run = currentRun
         var request = URLRequest(url: endpoint)
-        request.httpMethod = "GET"
+        request.httpMethod = verb
         request.timeoutInterval = 18
-        request.setValue("KeyboardTrial/0.2 (iOS)", forHTTPHeaderField: "User-Agent")
+        if let body {
+            request.httpBody = body.data(using: .utf8)
+            request.setValue("application/json; charset=utf-8", forHTTPHeaderField: "Content-Type")
+        }
+        request.setValue("KeyboardLab/0.3 (iOS)", forHTTPHeaderField: "User-Agent")
         networkSession.dataTask(with: request) { [weak self] data, response, error in
             DispatchQueue.main.async {
                 guard let self = self, self.currentRun == run else { return }
@@ -223,6 +262,47 @@ final class ScriptStudioModel: ObservableObject {
         )
         persist()
         status = "הסקריפט נשמר במקלדת"
+    }
+
+    /// The button ID and values are data, never concatenated directly as JS.
+    func fireAction(_ id: String, values: [String: String]) {
+        guard let data = try? JSONSerialization.data(
+            withJSONObject: values,
+            options: [.fragmentsAllowed]
+        ), let valuesJSON = String(data: data, encoding: .utf8) else { return }
+        context?.evaluateScript("__dispatchAction(" + jsString(id) + "," + valuesJSON + ");")
+    }
+
+    func stop() {
+        currentRun = UUID()
+        networkSession.invalidateAndCancel()
+        isLoading = false
+        context = nil
+        bridge = nil
+    }
+
+    @discardableResult
+    func saveCustom(title: String, source: String, replacing id: String? = nil) -> Bool {
+        let name = String(title.trimmingCharacters(in: .whitespacesAndNewlines).prefix(80))
+        guard !name.isEmpty else { status = "יש להזין שם"; return false }
+        guard !source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              source.utf8.count <= 50_000 else {
+            status = "קוד לא תקין או ארוך מ-50KB"
+            return false
+        }
+        let item = KeyboardScript(
+            id: id ?? UUID().uuidString, title: name,
+            detail: "Custom JavaScript tool", symbol: "curlybraces",
+            source: source, isBuiltIn: false
+        )
+        if let index = customScripts.firstIndex(where: { $0.id == item.id }) {
+            customScripts[index] = item
+        } else {
+            customScripts.append(item)
+        }
+        persist()
+        status = "הסקריפט נשמר"
+        return true
     }
 
     func delete(_ script: KeyboardScript) {

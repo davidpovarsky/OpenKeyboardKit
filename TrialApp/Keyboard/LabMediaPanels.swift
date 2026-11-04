@@ -160,7 +160,9 @@ struct LabTranslatePanel: View {
                 Text(sourceLanguage == "he" ? "🇮🇱 Hebrew" : "🇬🇧 English")
                 Spacer()
                 Button {
-                    swap(&sourceLanguage, &targetLanguage)
+                    let previous = sourceLanguage
+                    sourceLanguage = targetLanguage
+                    targetLanguage = previous
                 } label: {
                     Image(systemName: "arrow.left.arrow.right")
                 }

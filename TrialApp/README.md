@@ -1,30 +1,88 @@
-# Keyboard Lab v0.2 — iPad keyboard experiment
+# Keyboard Lab v0.4 — Native iPad Keyboard Toolkit
 
-A fork of OpenKeyboardKit with an installable iPad keyboard extension, dynamic height, Full Access request, native SwiftUI Script Studio, and JavaScriptCore scripts.
+This experimental iOS/iPadOS application includes a **real system keyboard extension** based on the MIT-licensed [OpenKeyboardKit](https://github.com/valomedia/OpenKeyboardKit). The host app and extension are implemented in Swift and SwiftUI; JavaScriptCore powers user scripts. No web-based UI is embedded.
 
-Features:
-- System-wide keyboard after enabling it in iPadOS Settings. It cannot appear in restricted password fields, certain phone inputs, or apps that opt out.
-- Full Access is REQUESTED in the extension plist; the user must enable it manually.
-- Expand/collapse height button requests different heights, subject to iOS.
-- Scripts toolbar button opens a fully native SwiftUI screen inside the keyboard.
-- JSCore runs built-in scripts and user-imported scripts copied from the clipboard.
-- HTTP networking is HTTPS GET only via URLSession, opt-in under Network On, requiring Full Access. Arbitrary HTTPS hostnames are supported.
-- Script examples include Wikipedia search, Sefaria text lookup, JSON formatter, date insertion, and native SwiftUI widgets.
-- Script bridge supports native.ui(data), native.log(message), native.insert(text), native.copy(text), native.context(), and native.fetch(url, callback).
-- Imported scripts stored in keyboard extension UserDefaults, not shared with the main app.
+## Install
 
-Security notes:
-Full Access does NOT bypass the sandbox, authorize access to passwords, other apps, arbitrary documents, photos, microphone or location. Separate system pickers/authorization are needed for applicable device features. The keyboard may see some local text context via the standard textDocumentProxy, and trusted scripts may send it to remote hosts if network access is enabled. Only import scripts you understand. Network responses are capped to 2MB to protect extension memory.
+1. Download the **unsigned IPA** from this repository's GitHub Release.
+2. Re-sign using SideStore/AltStore (or sign via a development profile). **Keep and sign TrialKeyboardExtension.appex**.
+3. Settings > General > Keyboard > Keyboards > Add New Keyboard > Keyboard Lab.
+4. In Notes, long-press the globe icon and select Keyboard Lab. The host app includes an embedded-extension check; it does not prove that iPadOS registered it successfully.
+5. For permitted network and clipboard features, allow Full Access in iPadOS Settings. Independently enable Network On inside Script Studio.
 
-Build:
-GitHub Actions macOS Intel runner invokes xcodegen and xcodebuild, validates the embedded TrialKeyboardExtension.appex, and creates a re-signable TrialKeyboard-unsigned.ipa. No signing certificate or Apple ID secret is included.
+## Interface
 
+The keyboard extension switches between three native modes:
+- **Typing**: standard OpenKeyboardKit keys pinned to the bottom, responsive toolbar, optional quick-access shortcuts above the keys.
+- **Tool launcher**: adaptive pastel tool cards, search and keyboard-return control.
+- **Tool detail**: full-height SwiftUI workspace rendered inside the keyboard, not a separate app.
 
-## v0.2.1: Bottom docking and system keyboard diagnostics
+Expanded and compact keyboard heights are requested through Auto Layout; actual size is controlled by iPadOS. The extra space in typing mode is above the keys, never beneath them.
 
-- SwiftUI layout: the original-size OpenKeyboardKit key rows and toolbar are pinned to the **bottom** of the keyboard extension with a flexible spacer above them. Expanded height must not stretch the keys or move them upward.
-- Expansion state is persisted and the keyboard height request is based on scene coordinate-space height, not the extension's feedback-prone window height. Rotation, Stage Manager, and Split View still require on-device testing.
-- The host app now checks whether the embedded `TrialKeyboardExtension.appex` is present **after installation** and explains how to activate the keyboard from iPadOS Settings.
-- This check cannot determine whether iPadOS registered the extension successfully or whether SideStore signed the extension correctly. To test the third-party keyboard, manually enable it via Settings → General → Keyboard → Keyboards, then long-press the globe key in Notes. Re-add it after updating if missing.
-- Apple blocks third-party keyboards in secure/password and phone-pad fields and may allow apps to opt out of keyboard extensions. This cannot be overridden.
-- Keep the .appex included when re-signing the unsigned IPA using SideStore/AltStore.
+## Working tools
+
+| Tool | Local/network | Notes |
+| --- | --- | --- |
+| Sefaria search | Network | POST /api/search-wrapper; Hebrew lemmatizer |
+| Wikipedia | Network | MediaWiki OpenSearch, chooses Hebrew/English |
+| Dictionary | Network | Free English Dictionary API |
+| Translator | Network | Experimental public MyMemory API, explicit consent |
+| Text FX | Local | Hebrew niqqud, whitespace, HTML, Markdown, case and more |
+| Calculator | Local | JavaScriptCore arithmetic, no network |
+| Conversion | Local | Length, mass, temperature, and time |
+| Emoji | Local | Curated native emoji picker |
+| Clipboard | Local | Manual save; no background monitoring |
+| Notepad | Local | Saved in extension UserDefaults |
+| Snippets | Local | Custom and built-in snippets |
+| Handwriting | Local | Native PencilKit drawing; copy rendered image |
+| Photos & files | System | Native PhotosPicker and fileImporter |
+| Themes | Local | Pastel accent palette for tools |
+| Profiles | Local | Choose quick-access shortcuts |
+| Layouts | Local | Expansion preference and keyboard instructions |
+| Script Studio | Local + optional network | JSCore editor, saved plugins, HTTPS GET/POST bridge, native data-driven forms |
+
+## Script Studio API
+
+Scripts run inside the keyboard extension. They are stored in its local UserDefaults; the host app does not automatically share that store.
+
+```js
+native.ui({
+  title: "Hello",
+  message: "SwiftUI renders this from JS data",
+  fields: [{id: "name", title: "Name", placeholder: "Name"}],
+  buttons: [{id: "send", title: "Insert greeting", symbol: "heart"}]
+});
+native.onAction = (id, values) => {
+  if (id === "send") native.insert("Hello, " + values.name);
+};
+native.context(); // May return up to 500 characters before cursor
+native.log("Status");
+native.insert("Text");
+native.copy("Copied"); // Full Access required
+native.fetch("https://example.org", (error, body) => {});
+native.request({
+  url: "https://www.sefaria.org/api/search-wrapper",
+  method: "POST",
+  body: JSON.stringify({query:"שלום", type:"text", field:"naive_lemmatizer", size:5})
+}, (error, body) => {});
+```
+
+The script engine supports only HTTPS GET/POST, with explicit network opt-in. Request bodies are limited to 100 KB and responses to 2 MB. Scripts execute synchronously in a JSContext; untrusted code can hang the keyboard. This is experimental, not a hardened script marketplace.
+
+## Platform boundaries and known issues
+
+- Third-party keyboards are not available in secure password fields or in host apps which exclude them. Users must activate the keyboard in Settings.
+- Re-signing through SideStore may require separately provisioning and retaining the embedded .appex. Registration in other host apps cannot be verified by a CI build.
+- iPadOS may reserve a bottom system keyboard strip outside the extension's drawable region.
+- The standard typing engine is English QWERTY. Hebrew text can be inserted by tools, but **Hebrew typing, predictions and Hebrew autocorrect are not yet implemented**.
+- Speech recognition directly in a keyboard extension is not permitted because microphone access is restricted; dictation is not included.
+- GIF search and remote generative AI providers are not configured or represented as operational.
+- Images copied through the clipboard can only be pasted into host applications that accept them. File pickers cannot attach arbitrary documents to other apps.
+- TextField/TextEditor in a custom keyboard extension may behave differently between host apps; verify on the intended iPad.
+- External APIs (Sefaria, Wikipedia, DictionaryAPI, MyMemory) may change or become unavailable. Only explicit searches send queries.
+- App Group synchronization with the host application has not yet been configured and may require new signing entitlements.
+- A full native UI cannot bypass iPadOS sandboxing, privacy permissions, or extension resource limits.
+
+## Build
+
+The GitHub workflow builds using an Intel-hosted macOS runner and Xcode 16.4 (proven toolchain for this fork), generates Xcode targets via XcodeGen, runs Release compilation, validates the embedded keyboard extension's Info.plist and Full Access request, assembles an **unsigned** .ipa, and uploads it to Releases. An upgrade test for Xcode 27 is planned after confirming tooling availability and migration compatibility.

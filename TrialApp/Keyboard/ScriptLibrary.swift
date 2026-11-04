@@ -66,6 +66,35 @@ enum ScriptLibrary {
               native.ui({ title: "JSON Formatter", message: "JSON לא תקין: " + e.message, rows: [] });
             }
             """, isBuiltIn: true),
+        .init(id: "sefaria-search", title: "Sefaria Search", detail: "Search sources via HTTPS POST", symbol: "books.vertical", source: """
+            const context = native.context().trim();
+            const query = context.split(/[\\n.!?]/).pop().trim().slice(-70) || "שמע ישראל";
+            native.ui({ title: "ספריא · חיפוש", message: "מחפש: " + query, rows: [] });
+            native.request({
+              url: "https://www.sefaria.org/api/search-wrapper",
+              method: "POST",
+              body: JSON.stringify({
+                query: query, type: "text", field: "naive_lemmatizer", size: 8
+              })
+            }, (error, body) => {
+              if (error) { native.ui({title:"Sefaria", message:error, rows:[]}); return; }
+              try {
+                const data = JSON.parse(body);
+                const hits = (data.hits && data.hits.hits) || [];
+                native.ui({
+                  title: "Sefaria",
+                  message: hits.length + " results for: " + query,
+                  rows: hits.map((hit, i) => {
+                    const source = hit._source || {};
+                    const ref = source.ref || hit._id || "Result " + (i + 1);
+                    const content = String(source.content || source.text || "")
+                      .replace(/<[^>]*>/g, "").slice(0, 250);
+                    return {title: ref, detail: content, insert: ref + " " + content};
+                  })
+                });
+              } catch (e) { native.log("Could not parse Sefaria results: " + e); }
+            });
+            """, isBuiltIn: true),
         .init(id: "date", title: "Insert Date", detail: "Insert current date directly into the host text field", symbol: "calendar", source: """
             const date = new Date().toLocaleString("he-IL");
             native.insert(date);
@@ -73,14 +102,23 @@ enum ScriptLibrary {
             """, isBuiltIn: true),
         .init(id: "demo", title: "SwiftUI Widgets", detail: "A native list created by JavaScript", symbol: "square.grid.2x2", source: """
             native.ui({
-              title: "Native SwiftUI",
-              message: "הממשק נבנה ב-SwiftUI. JavaScript מגדיר רק את הנתונים והפעולות.",
+              title: "SwiftUI Form",
+              message: "JavaScript configures a native SwiftUI form with fields and buttons.",
+              fields: [
+                {id: "name", title: "Name", placeholder: "Type a name"}
+              ],
+              buttons: [
+                {id: "greet", title: "Insert greeting", symbol: "heart"}
+              ],
               rows: [
-                { title: "ברוך הבא", detail: "הכנס טקסט לדוגמה", insert: "ברוך הבא" },
-                { title: "SwiftUI + JSCore", detail: "בדיקת ממשק ולוגיקה", insert: "SwiftUI + JavaScriptCore" },
-                { title: "שאלת שלום", detail: "הוספת טקסט בעברית", insert: "מה שלומך?" }
+                {title: "Shortcut", detail: "A normal native list row", insert: "Hello world"}
               ]
             });
+            native.onAction = (id, values) => {
+              if (id === "greet") {
+                native.insert("שלום " + (values.name || "חבר") + "!");
+              }
+            };
             """, isBuiltIn: true)
     ]
 }
@@ -96,4 +134,20 @@ struct ScriptPanel: Codable {
     var title: String
     var message: String?
     var rows: [ScriptRow]?
+    var fields: [ScriptField]?
+    var buttons: [ScriptButton]?
+}
+
+struct ScriptField: Codable, Identifiable {
+    let id: String
+    var title: String?
+    var placeholder: String?
+    var value: String?
+}
+
+struct ScriptButton: Codable, Identifiable {
+    let id: String
+    var title: String
+    var symbol: String?
+    var insert: String?
 }
