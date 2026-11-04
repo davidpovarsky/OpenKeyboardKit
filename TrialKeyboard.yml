@@ -10,6 +10,12 @@ settings:
 packages:
   OpenKeyboardKit:
     path: .
+  Pow:
+    url: https://github.com/EmergeTools/Pow
+    version: 1.0.5
+  SwiftUIIntrospect:
+    url: https://github.com/siteline/swiftui-introspect
+    version: 27.1.0
 targets:
   TrialKeyboard:
     type: application
@@ -21,8 +27,8 @@ targets:
       properties:
         CFBundleDisplayName: "Keyboard Lab"
         CFBundleName: TrialKeyboard
-        CFBundleShortVersionString: "0.5.0"
-        CFBundleVersion: "5"
+        CFBundleShortVersionString: "0.6.0"
+        CFBundleVersion: "6"
         LSRequiresIPhoneOS: true
         UILaunchScreen: {}
         UIRequiresFullScreen: false
@@ -55,8 +61,8 @@ targets:
       properties:
         CFBundleDisplayName: "Keyboard Lab"
         CFBundleName: TrialKeyboardExtension
-        CFBundleShortVersionString: "0.5.0"
-        CFBundleVersion: "5"
+        CFBundleShortVersionString: "0.6.0"
+        CFBundleVersion: "6"
         NSExtension:
           NSExtensionPointIdentifier: "com.apple.keyboard-service"
           NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).KeyboardViewController"
@@ -72,3 +78,5 @@ targets:
         APPLICATION_EXTENSION_API_ONLY: YES
     dependencies:
       - package: OpenKeyboardKit
+      - package: Pow
+      - package: SwiftUIIntrospect
