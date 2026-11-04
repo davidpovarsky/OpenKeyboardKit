@@ -58,7 +58,12 @@ struct TrialKeyboardView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                LabInputAccessory()
+                // Cursor navigation is useful for internal multiline editors,
+                // but redundant while browsing tools or editing command input.
+                if inputRouter.activeKey != nil &&
+                   inputRouter.activeKey != "command.bar.input" {
+                    LabInputAccessory()
+                }
             }
 
             // This command bar is OUTSIDE Keyboard.Toolbar so it cannot
@@ -139,22 +144,6 @@ struct TrialKeyboardView: View {
         setExpanded(expanded)
     }
 
-    private var quickMenuItems: [LabSystemMenuItem] {
-        [
-            .init(id: "wiki", title: "Wikipedia", symbol: "globe.europe.africa",
-                  action: { openTool(.wikipedia) }),
-            .init(id: "sefaria", title: "Sefaria", symbol: "books.vertical",
-                  action: { openTool(.sefaria) }),
-            .init(id: "calculator", title: "Calculator",
-                  symbol: "plus.forwardslash.minus",
-                  action: { openTool(.calculator) }),
-            .init(id: "clipboard", title: "Clipboard", symbol: "doc.on.clipboard",
-                  action: { openTool(.clipboard) }),
-            .init(id: "brief", title: "Quick Brief", symbol: "slider.horizontal.3",
-                  action: { openTool(.quickForm) })
-        ]
-    }
-
     private var standardKeyboard: some View {
         KeyboardView(
             layout: useHebrew
@@ -176,38 +165,27 @@ struct TrialKeyboardView: View {
                             if screen == .typing { openLibrary() }
                             else { returnToTyping() }
                         }
-                        Spacer(minLength: 4)
-                        if screen != .typing {
-                            toolButton(useHebrew ? "English" : "עברית", symbol: "globe") {
-                                useHebrew.toggle()
-                            }
-                            toolButton("Tools", symbol: "square.grid.2x2") {
-                                openLibrary()
-                            }
-                        } else {
-                            LabSystemMenuButton(items: quickMenuItems)
-                                .frame(width: 43, height: 34)
-                                .accessibilityLabel("Quick actions menu")
-                            toolButton(useHebrew ? "EN" : "עברית", symbol: "globe") {
-                                useHebrew.toggle()
-                            }
+                        toolButton(useHebrew ? "English" : "עברית", symbol: "globe") {
+                            useHebrew.toggle()
                         }
+
+                        Spacer(minLength: 6)
+
                         toolButton("Scripts", symbol: "curlybraces.square") {
                             openTool(.scripts)
                         }
-                        Spacer(minLength: 4)
                         if screen == .typing {
                             toolButton(
                                 expanded ? "Compact" : "Expand",
-                                symbol: expanded ?
-                                    "arrow.down.right.and.arrow.up.left" :
-                                    "arrow.up.left.and.arrow.down.right"
+                                symbol: expanded
+                                    ? "arrow.down.right.and.arrow.up.left"
+                                    : "arrow.up.left.and.arrow.down.right"
                             ) {
                                 changeHeight()
                             }
                         } else {
                             toolButton("Done", symbol: "checkmark.circle") {
-                                inputRouter.unfocus()
+                                inputRouter.activateHost()
                             }
                         }
                     }

@@ -49,9 +49,11 @@ checks = {
     "keyboard toolbar remains KeyboardKit owned":
         "Keyboard.Toolbar {" in shell and
         "HStack(spacing: 8)" in shell and "LabGlassCommand(" in shell,
-    "native UIKit glass menu without UIKit toolbar": all(x in read("LabSystemChrome.swift") for x in
-        ["UIButton.Configuration", ".glass()", "UIMenu(title:", "UIAction("]) and
-        "LabSystemMenuButton(items: quickMenuItems)" in shell,
+    "system menu support retained without duplicating chooser":
+        all(x in read("LabSystemChrome.swift") for x in
+            ["UIButton.Configuration", ".glass()", "UIMenu(title:", "UIAction("]) and
+        "LabSystemMenuButton(items: quickMenuItems)" not in shell and
+        "Menu {" in read("LabSmartCommandBar.swift"),
     "system search field never takes first responder":
         all(x in read("LabSystemChrome.swift") for x in
             ["UISearchBar(frame:", "bar.isUserInteractionEnabled = false",
@@ -109,6 +111,8 @@ checks = {
             ["func input() -> String", "channel.commandInput", "return __keyboardNative.input();",
              "input: String = \"\""]) and
         "native.input() || native.context()" in read("ScriptLibrary.swift"),
+    "permission errors override stale JavaScript status":
+        "if !notice.isEmpty { return notice }" in read("LabSmartCommandBar.swift"),
     "network access is explicit and gated at run":
         "if manifest.permissions.contains(\"network\") && (!fullAccess || !allowNetwork)" in read("LabSmartCommandBar.swift")
         and "allowNetwork: allowNetwork && fullAccess" in read("LabSmartCommandBar.swift"),

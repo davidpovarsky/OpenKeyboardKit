@@ -92,14 +92,16 @@ struct LabSmartCommandBar: View {
     }
 
     private var currentNotice: String {
+        // Preflight permission and input errors are always more important
+        // than stale script-model status from an earlier command.
+        if !notice.isEmpty { return notice }
         if selectedScript != nil {
-            return scriptRunner.panel == nil && !scriptRunner.status.isEmpty
-                ? scriptRunner.status : notice
+            return scriptRunner.status
         }
         if [.sefaria, .wikipedia, .dictionary].contains(selectedTool) {
-            return lookup.notice.isEmpty ? notice : lookup.notice
+            return lookup.notice
         }
-        return notice
+        return ""
     }
 
     var body: some View {

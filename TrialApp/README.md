@@ -14,6 +14,9 @@ This experimental iOS/iPadOS application includes a **real system keyboard exten
 
 - Persistent SF Symbol command picker and system search field above KeyboardKit
   keys in host typing and tool workspace modes.
+- Redundant action menus were removed from the older Keyboard.Toolbar.
+  Navigation, language and script buttons remain in the original HStack.
+  Extra cursor-navigation controls display only while a tool field needs them.
 - Choose any of 20 tools or built-in/custom JavaScript. The right button comes
   from each manifest: title, icon and required input.
 - Explicit input is read using native.input() in JavaScriptCore; native.context()
