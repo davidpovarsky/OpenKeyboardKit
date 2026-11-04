@@ -23,13 +23,15 @@ struct LabToolPage: View {
                         .frame(width: 40, height: 38)
                 }
                 .buttonStyle(.plain)
+                .labGlass(12)
                 .accessibilityLabel("Back to tools")
 
                 Image(systemName: tool.symbol)
                     .font(.system(size: 22, weight: .medium))
                     .foregroundStyle(tool.tint)
                     .frame(width: 37, height: 38)
-                    .background(tool.bg, in: RoundedRectangle(cornerRadius: 10))
+                    .background(tool.bg, in: RoundedRectangle(cornerRadius: 12))
+                    .labGlass(12)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(tool.title).font(.headline)
@@ -43,12 +45,14 @@ struct LabToolPage: View {
                         .frame(width: 37, height: 38)
                 }
                 .buttonStyle(.plain)
+                .labGlass(12)
                 .accessibilityLabel("Return to keyboard")
             }
-            .padding(.horizontal, 13)
-            .frame(height: 64)
+            .padding(.horizontal, 14)
+            .frame(height: 60)
+            .background(.ultraThinMaterial)
 
-            Divider()
+            Divider().opacity(0.35)
 
             if tool == .scripts {
                 ScriptStudioView(
@@ -82,7 +86,10 @@ struct LabToolPage: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(uiColor: .secondarySystemBackground))
+        .background {
+            LinearGradient(colors: [LabDesign.canvas, accent.opacity(0.045), LabDesign.canvas],
+                           startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
         .tint(accent)
     }
 
@@ -127,13 +134,20 @@ struct LabHint: View {
     let text: String
     var icon: String = "info.circle"
     var body: some View {
-        Label(text, systemImage: icon)
-            .font(.system(size: 12))
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
-            .background(Color(uiColor: .tertiarySystemBackground),
-                        in: RoundedRectangle(cornerRadius: 13))
+        HStack(alignment: .top, spacing: 9) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.indigo)
+                .frame(width: 23)
+            Text(text)
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .labGlass(14)
     }
 }
 
