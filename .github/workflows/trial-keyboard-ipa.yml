@@ -23,14 +23,20 @@ permissions:
 
 jobs:
   build:
-    runs-on: xcode-27
+    runs-on: macos-15-intel
     timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
       - name: Check keyboard input regression guards
         run: python3 TrialApp/Tests/verify_keyboard_tool_inputs.py
+      - name: Select Xcode 26.3 (iOS 26 SDK, compatible with iPadOS 27)
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.3'
       - name: Verify Xcode toolchain
-        run: xcodebuild -version
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate Xcode project
