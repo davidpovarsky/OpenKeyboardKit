@@ -27,7 +27,11 @@ struct ScriptStudioView: View {
                 }
                 .buttonStyle(.plain)
                 Image(systemName: "curlybraces.square.fill")
-                    .font(.title2).foregroundStyle(.indigo)
+                    .font(.title2)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.indigo)
+                    .frame(width: 34, height: 34)
+                    .labGlass(10)
                 Text("Script Studio")
                     .font(.system(size: 17, weight: .semibold))
                 Spacer()
@@ -45,9 +49,10 @@ struct ScriptStudioView: View {
                 }
             }
             .padding(.horizontal, 12)
-            .frame(height: 50)
+            .frame(height: 45)
+            .background(.ultraThinMaterial)
 
-            Divider()
+            Divider().opacity(0.35)
 
             if editing {
                 editor
@@ -122,27 +127,14 @@ struct ScriptStudioView: View {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), spacing: 12)],
                           spacing: 12) {
                     ForEach(ScriptLibrary.scripts + model.customScripts) { script in
-                        Button { run(script) } label: {
-                            VStack(alignment: .leading, spacing: 7) {
-                                Image(systemName: script.symbol)
-                                    .font(.title2)
-                                    .foregroundStyle(.indigo)
-                                Text(script.title)
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(.primary)
-                                Text(script.detail)
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(2)
-                                    .multilineTextAlignment(.leading)
-                                Spacer(minLength: 0)
-                            }
-                            .frame(maxWidth: .infinity, minHeight: 105, alignment: .leading)
-                            .padding(12)
-                            .background(Color.indigo.opacity(0.09),
-                                        in: RoundedRectangle(cornerRadius: 15))
+                        LabAnimatedTile(
+                            title: script.title,
+                            detail: script.detail,
+                            symbol: script.symbol,
+                            tint: .indigo
+                        ) {
+                            run(script)
                         }
-                        .buttonStyle(.plain)
                         .contextMenu {
                             Button(script.isBuiltIn ? "Copy as custom" : "Edit") {
                                 openEditor(script)
