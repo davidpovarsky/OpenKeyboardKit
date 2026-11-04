@@ -1,64 +1,68 @@
 import SwiftUI
 
-/// Native, adaptive tool launcher inspired by the clarity of Clink,
-/// not a web view or image-based imitation.
+/// A real native tool command center, adaptive to the area iPadOS grants.
 struct LabToolHome: View {
     let onSelect: (LabTool) -> Void
     let onClose: () -> Void
 
     @State private var search = ""
+    @State private var filter = 0
     @AppStorage("keyboard.lab.theme") private var themeName = LabTheme.classic.rawValue
-    @AppStorage("keyboard.lab.favorites") private var pinnedIDs = "sefaria,wikipedia,clipboard,textFX,calculator,templates"
+    @AppStorage("keyboard.lab.favorites") private var pinnedIDs =
+        "sefaria,wikipedia,clipboard,textFX,calculator,templates"
 
-    private var accent: Color {
-        LabTheme(rawValue: themeName)?.accent ?? .indigo
-    }
+    private var accent: Color { LabDesign.accent(themeName) }
+    private var pinned: Set<String> { Set(pinnedIDs.split(separator: ",").map(String.init)) }
 
     private var visible: [LabTool] {
-        let query = search.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return LabTool.allCases }
-        return LabTool.allCases.filter {
-            $0.title.localizedCaseInsensitiveContains(query) ||
-            $0.detail.localizedCaseInsensitiveContains(query)
+        let all = filter == 1 ? LabTool.allCases.filter { pinned.contains($0.rawValue) }
+                              : LabTool.allCases
+        let q = search.trimmingCharacters(in: .whitespacesAndNewlines)
+        return q.isEmpty ? all : all.filter {
+            $0.title.localizedCaseInsensitiveContains(q) ||
+            $0.detail.localizedCaseInsensitiveContains(q)
         }
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 12) {
+            HStack(spacing: 11) {
                 Button(action: onClose) {
                     Image(systemName: "keyboard")
-                        .font(.system(size: 18, weight: .medium))
-                        .frame(width: 38, height: 36)
+                        .font(.system(size: 16, weight: .medium))
+                        .frame(width: 34, height: 34)
+                        .labGlass(12)
                 }
-                .accessibilityLabel("Back to keyboard")
                 .buttonStyle(.plain)
+                .accessibilityLabel("Back to keyboard")
 
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Keyboard Lab")
-                        .font(.system(size: 18, weight: .semibold))
-                    Text("Your tools, one tap away")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Your workspace")
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    Text("Everything you need, where you type")
+                        .font(.caption2).foregroundStyle(.secondary)
                 }
-
                 Spacer()
-                Image(systemName: "square.grid.2x2")
+                Image(systemName: "square.stack.3d.up.fill")
+                    .font(.system(size: 18, weight: .light))
+                    .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(accent)
-                    .font(.title3)
-                    .padding(9)
-                    .background(accent.opacity(0.09), in: RoundedRectangle(cornerRadius: 11))
+                    .frame(width: 35, height: 35)
+                    .labGlass(12)
             }
-            .padding(.horizontal, 18)
-            .frame(height: 64)
+            .padding(.horizontal, 14)
+            .frame(height: 59)
 
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                TextField("Find a tool", text: $search)
                     .font(.subheadline)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                    .foregroundStyle(.secondary)
+                LabEditableField(
+                    id: "launcher.search",
+                    placeholder: "Search all tools",
+                    text: $search,
+                    minHeight: 37
+                )
                 if !search.isEmpty {
                     Button { search = "" } label: {
                         Image(systemName: "xmark.circle.fill")
@@ -67,100 +71,79 @@ struct LabToolHome: View {
                     .buttonStyle(.plain)
                 }
             }
+            .padding(.horizontal, 13)
+            .padding(.bottom, 7)
+
+            HStack(spacing: 8) {
+                Picker("View", selection: $filter) {
+                    Text("All tools").tag(0)
+                    Text("Favorites").tag(1)
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 240)
+
+                Spacer()
+
+                Text("\(visible.count) tools")
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
             .padding(.horizontal, 14)
-            .frame(height: 40)
-            .background(Color(uiColor: .tertiarySystemBackground), in: Capsule())
-            .padding(.horizontal, 16)
-            .padding(.bottom, 12)
+            .padding(.bottom, 9)
 
             ScrollView {
                 LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 158, maximum: 360), spacing: 12)],
-                    spacing: 12
+                    columns: [GridItem(.adaptive(minimum: 150, maximum: 300), spacing: 9)],
+                    spacing: 9
                 ) {
                     ForEach(visible) { tool in
-                        Button { onSelect(tool) } label: {
-                            LabToolTile(tool: tool)
+                        LabAnimatedTile(
+                            title: tool.title, detail: tool.detail,
+                            symbol: tool.symbol, tint: tool.tint
+                        ) {
+                            onSelect(tool)
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("\(tool.title): \(tool.detail)")
                     }
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 13)
                 .padding(.bottom, 12)
+                if visible.isEmpty {
+                    ContentUnavailableView.search(text: search)
+                        .padding(.top, 16)
+                }
             }
-
-            HStack(spacing: 8) {
-                Image(systemName: "checkmark.shield")
-                    .foregroundStyle(.secondary)
-                Text("Local tools run on-device. Network features require your permission.")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                Spacer(minLength: 2)
-            }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 11)
+            .scrollIndicators(.hidden)
         }
-        .background(Color(uiColor: .secondarySystemBackground))
-        .tint(accent)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background {
+            LinearGradient(colors: [LabDesign.canvas,
+                                    accent.opacity(0.05),
+                                    LabDesign.canvas],
+                           startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
     }
 }
 
-struct LabToolTile: View {
-    let tool: LabTool
-
-    var body: some View {
-        VStack(spacing: 7) {
-            Image(systemName: tool.symbol)
-                .font(.system(size: 28, weight: .light))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(tool.tint)
-                .frame(height: 35)
-            Text(tool.title)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-            Text(tool.detail)
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-        }
-        .frame(maxWidth: .infinity)
-        .frame(minHeight: 95)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(tool.bg)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(tool.tint.opacity(0.17), lineWidth: 0.85)
-        )
-    }
-}
-
-/// Replaces dead space above the keys in expanded mode with useful shortcuts.
 struct LabQuickAccess: View {
     let open: (LabTool) -> Void
     let showAll: () -> Void
-    @AppStorage("keyboard.lab.favorites") private var pinnedIDs = "sefaria,wikipedia,clipboard,textFX,calculator,templates"
+    @AppStorage("keyboard.lab.favorites") private var pinnedIDs =
+        "sefaria,wikipedia,clipboard,textFX,calculator,templates"
 
-    private var favoriteTools: [LabTool] {
-        let names = pinnedIDs.split(separator: ",").map(String.init)
-        let picked = names.compactMap(LabTool.init(rawValue:))
-        return picked.isEmpty ? LabTool.favorites : Array(picked.prefix(6))
+    private var favorites: [LabTool] {
+        let ids = pinnedIDs.split(separator: ",").map(String.init)
+        let tools = ids.compactMap(LabTool.init(rawValue:))
+        return tools.isEmpty ? LabTool.favorites : Array(tools.prefix(6))
     }
 
     var body: some View {
         VStack(spacing: 10) {
             HStack {
-                Text("Quick access")
-                    .font(.system(size: 14, weight: .semibold))
+                Label("Quick actions", systemImage: "bolt.horizontal.circle")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
                 Spacer()
                 Button(action: showAll) {
-                    Label("All tools", systemImage: "square.grid.2x2")
+                    Label("Explore", systemImage: "square.grid.2x2")
                         .font(.caption.weight(.medium))
                 }
                 .buttonStyle(.plain)
@@ -168,16 +151,13 @@ struct LabQuickAccess: View {
             }
             .padding(.horizontal, 17)
 
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 120), spacing: 8)],
-                spacing: 8
-            ) {
-                ForEach(favoriteTools) { tool in
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 8)], spacing: 8) {
+                ForEach(favorites) { tool in
                     Button { open(tool) } label: {
-                        HStack(spacing: 8) {
+                        HStack(spacing: 7) {
                             Image(systemName: tool.symbol)
                                 .foregroundStyle(tool.tint)
-                                .font(.system(size: 14))
+                                .font(.system(size: 13))
                             Text(tool.title)
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(.primary)
@@ -185,7 +165,7 @@ struct LabQuickAccess: View {
                             Spacer(minLength: 0)
                         }
                         .padding(.horizontal, 10)
-                        .frame(height: 38)
+                        .frame(height: 37)
                         .background(tool.bg, in: RoundedRectangle(cornerRadius: 11))
                     }
                     .buttonStyle(.plain)
@@ -193,9 +173,8 @@ struct LabQuickAccess: View {
             }
             .padding(.horizontal, 14)
         }
-        .padding(.top, 8)
-        .padding(.bottom, 8)
+        .padding(.top, 9)
+        .padding(.bottom, 10)
         .frame(maxWidth: .infinity)
-        .background(Color(uiColor: .secondarySystemBackground))
     }
 }
