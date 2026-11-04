@@ -161,20 +161,15 @@ struct ScriptStudioView: View {
     }
 
     private var editor: some View {
+        ScrollView {
         VStack(alignment: .leading, spacing: 10) {
-            TextField("Script title", text: $codeTitle)
-                .font(.subheadline.weight(.semibold))
-                .padding(10)
-                .background(Color(uiColor: .tertiarySystemBackground),
-                            in: RoundedRectangle(cornerRadius: 12))
+            LabEditableField(id: "studio.scriptTitle",
+                             placeholder: "Script title", text: $codeTitle)
 
-            TextEditor(text: $codeSource)
-                .font(.system(size: 12, design: .monospaced))
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .scrollContentBackground(.hidden)
-                .padding(9)
-                .background(Color(uiColor: .tertiarySystemBackground),
-                            in: RoundedRectangle(cornerRadius: 13))
+            LabEditableField(id: "studio.scriptCode",
+                             placeholder: "JavaScript source code",
+                             text: $codeSource, multiline: true,
+                             minHeight: 115)
 
             HStack(spacing: 8) {
                 Button("Save") {
@@ -238,14 +233,14 @@ struct ScriptStudioView: View {
                     VStack(alignment: .leading, spacing: 5) {
                         Text(field.title ?? field.id)
                             .font(.caption.weight(.medium))
-                        TextField(field.placeholder ?? "Enter text", text: Binding(
-                            get: { fieldValues[field.id] ?? field.value ?? "" },
-                            set: { fieldValues[field.id] = $0 }
-                        ))
-                        .font(.subheadline)
-                        .padding(11)
-                        .background(Color(uiColor: .tertiarySystemBackground),
-                                    in: RoundedRectangle(cornerRadius: 11))
+                        LabEditableField(
+                            id: "studio.field." + field.id,
+                            placeholder: field.placeholder ?? "Enter text",
+                            text: Binding(
+                                get: { fieldValues[field.id] ?? field.value ?? "" },
+                                set: { fieldValues[field.id] = $0 }
+                            )
+                        )
                     }
                 }
 
