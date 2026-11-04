@@ -1,4 +1,4 @@
-# Keyboard Lab v0.6 — Native SwiftUI Keyboard Workspace
+# Keyboard Lab v0.6.1 — Native SwiftUI Keyboard Workspace
 
 This experimental iOS/iPadOS application includes a **real system keyboard extension** based on the MIT-licensed [OpenKeyboardKit](https://github.com/valomedia/OpenKeyboardKit). The host app and extension are implemented in Swift and SwiftUI; JavaScriptCore powers user scripts. No web-based UI is embedded.
 
@@ -18,6 +18,16 @@ The keyboard extension switches between three native modes:
 - **Tool detail**: a native SwiftUI workspace displayed **above the persistent input keyboard**, not a separate app. Tool fields route typing into their own bindings instead of the host document.
 
 Expanded and compact keyboard heights are requested through Auto Layout; actual size is controlled by iPadOS. The extra space in typing mode is above the keys, never beneath them. Tool mode requests additional height where supported and always reserves the bottom area for keys. Tool inputs have caret navigation and backspace/space/return handling. Optional native Hebrew keys switch with the English OpenKeyboardKit layout in tool mode.
+
+## System-native interaction polish (v0.6.1)
+
+- Built with **Xcode 27** and a minimum **iOS 17 deployment target**. Genuine SwiftUI Liquid Glass renders on iPadOS 26+, including iPadOS 27.
+- Native `contextMenu(menuItems:preview:)` shows long-press tool previews with Open/Toggle Favorite actions. Short tapping still opens immediately.
+- Script library long press shows a readable source excerpt and Run/Edit/Delete actions.
+- Search results long press shows an expanded preview with Insert/Copy; saved clips, notes and snippets provide a local text preview and context-specific actions.
+- Tool cards use iPad pointer hover lift and SwiftUI sensory-feedback triggers where the device supports haptics.
+- Context previews are **system overlays** managed by iPadOS. The keyboard extension cannot control whether the overlay can transcend its allotted input view, so test in Notes on the actual iPad.
+- Previews are built entirely in SwiftUI and do not transmit text or execute a script merely by previewing.
 
 ## Working tools
 
