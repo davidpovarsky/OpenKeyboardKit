@@ -25,7 +25,11 @@ checks = {
     "native themed tool launcher": all(x in read("LabToolHome.swift") for x in
         ["LabAnimatedTile", "LabEditableField", ".introspect("]),
     "glass UI and Pow effects": all(x in read("LabDesign.swift") for x in
-        [".glassEffect(", ".changeEffect(.shine"]),
+        [".glassEffect(", ".changeEffect(.shine", ".sensoryFeedback(.selection", ".hoverEffect(.lift)"]),
+    "system context menu previews": all(x in read("LabNativePreviews.swift") for x in
+        ["struct LabToolPreview", "struct LabScriptPreview", "struct LabResultPreview", "struct LabSavedTextPreview"]),
+    "native long press menu wiring": all(".contextMenu {" in read(n) and "preview: {" in read(n) for n in
+        ["LabToolHome.swift", "ScriptStudioView.swift", "LabToolPage.swift", "LabStoragePanels.swift"]),
 }
 
 text_panels = [
