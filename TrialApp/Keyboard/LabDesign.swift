@@ -181,5 +181,7 @@ struct LabAnimatedTile: View {
             .changeEffect(.shine, value: selectionCount)
         }
         .buttonStyle(.plain)
+        .hoverEffect(.lift)
+        .sensoryFeedback(.selection, trigger: selectionCount)
     }
 }
