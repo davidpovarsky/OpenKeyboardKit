@@ -1,4 +1,4 @@
-# Keyboard Lab v0.5 — Native iPad Keyboard Toolkit
+# Keyboard Lab v0.6 — Native SwiftUI Keyboard Workspace
 
 This experimental iOS/iPadOS application includes a **real system keyboard extension** based on the MIT-licensed [OpenKeyboardKit](https://github.com/valomedia/OpenKeyboardKit). The host app and extension are implemented in Swift and SwiftUI; JavaScriptCore powers user scripts. No web-based UI is embedded.
 
@@ -14,10 +14,10 @@ This experimental iOS/iPadOS application includes a **real system keyboard exten
 
 The keyboard extension switches between three native modes:
 - **Typing**: standard OpenKeyboardKit keys pinned to the bottom, responsive toolbar, optional quick-access shortcuts above the keys.
-- **Tool launcher**: adaptive pastel tool cards, search and keyboard-return control.
-- **Tool detail**: full-height SwiftUI workspace rendered inside the keyboard, not a separate app.
+- **Tool launcher**: Liquid Glass tool navigation, SF Symbols, Pow animations and SwiftUI Introspect scroll behavior, with responsive pastel cards and a routed search field.
+- **Tool detail**: a native SwiftUI workspace displayed **above the persistent input keyboard**, not a separate app. Tool fields route typing into their own bindings instead of the host document.
 
-Expanded and compact keyboard heights are requested through Auto Layout; actual size is controlled by iPadOS. The extra space in typing mode is above the keys, never beneath them.
+Expanded and compact keyboard heights are requested through Auto Layout; actual size is controlled by iPadOS. The extra space in typing mode is above the keys, never beneath them. Tool mode requests additional height where supported and always reserves the bottom area for keys. Tool inputs have caret navigation and backspace/space/return handling. Optional native Hebrew keys switch with the English OpenKeyboardKit layout in tool mode.
 
 ## Working tools
 
@@ -79,7 +79,7 @@ The script engine supports only HTTPS GET/POST, with explicit network opt-in. Re
 - Speech recognition directly in a keyboard extension is not permitted because microphone access is restricted; dictation is not included.
 - Remote generative AI is not configured as operational. GIF gallery is implemented using Wikimedia Commons with static previews; selected GIF data is copied to the clipboard on request.
 - Images copied through the clipboard can only be pasted into host applications that accept them. File pickers cannot attach arbitrary documents to other apps.
-- TextField/TextEditor in a custom keyboard extension may behave differently between host apps; the Sefaria/Wikipedia/Dictionary and GIF searches use a dedicated SwiftUI Hebrew/English keypad to avoid secondary keyboard activation.
+- Tool fields use LabEditableField with a shared LabInputRouter, rather than a TextField/TextEditor that cannot summon a secondary iPadOS keyboard inside the extension. In tool mode, the existing keyboard remains visible and its characters edit extension-owned state. An optional Hebrew layout is available for tool inputs.
 - External APIs (Sefaria, Wikipedia, DictionaryAPI, MyMemory) may change or become unavailable. Only explicit searches send queries.
 - App Group synchronization with the host application has not yet been configured and may require new signing entitlements.
 - A full native UI cannot bypass iPadOS sandboxing, privacy permissions, or extension resource limits.
@@ -87,3 +87,24 @@ The script engine supports only HTTPS GET/POST, with explicit network opt-in. Re
 ## Build
 
 The GitHub workflow builds using an Intel-hosted macOS runner and Xcode 16.4 (proven toolchain for this fork), generates Xcode targets via XcodeGen, runs Release compilation, validates the embedded keyboard extension's Info.plist and Full Access request, assembles an **unsigned** .ipa, and uploads it to Releases. An upgrade test for Xcode 27 is planned after confirming tooling availability and migration compatibility.
+
+
+## v0.6 UI and input architecture
+
+- `LabInputRouter` owns active field routing, Unicode-character-aware insertion/deletion, caret position and return behavior; it isolates the host `UITextDocumentProxy` from tool input.
+- `LabRoutedActionHandler` is a standard KeyboardKit handler subclass. It intercepts character, space, delete and return in tool mode, but preserves normal host typing behavior elsewhere.
+- `TrialKeyboardView` mounts the same keyboard below every tool and Script Studio. The workspace changes above it and can request a taller keyboard-extension window when the system permits.
+- `LabEditableField` is a native SwiftUI input surface that is owned by the extension. Tapping it selects a binding for the persistent keyboard; it is not a second system `UITextField`.
+- `LabToolHebrewKeyboard` supports Hebrew and symbols in tool mode, with English as the default underlying OpenKeyboardKit layout.
+- Modern visuals use Apple SwiftUI Liquid Glass on iPadOS 26+, with a native material fallback, SF Symbols, the MIT-licensed Pow animation library (pinned to the upstream Swift 6 compatibility fix), and MIT SwiftUI Introspect for predictable scrolling.
+- The release workflow runs `TrialApp/Tests/verify_keyboard_tool_inputs.py` to catch regressions where a tool switches back to non-functional internal `TextField` or `TextEditor` controls.
+
+### On-device acceptance test
+
+1. Open Keyboard Lab in Notes; in **Tools**, tap search and type **Wikipedia** or **ספריא** using the keyboard shown at the bottom.
+2. Open **Sefaria**, tap its search field, type Hebrew (use the Hebrew switch) and tap Search. A result should insert into the original Notes text field when explicitly selected.
+3. Open **Script Studio**, choose a form-based script, tap a field, type using the same keyboard, and submit it. No keystrokes should accidentally enter Notes until the script calls `native.insert`.
+4. Check Text FX, translator input, notes, snippets, conversion, JS editor and GIF search. The input keyboard should remain visible in every tool.
+5. Return to normal keyboard typing and confirm the keys enter text into Notes as before. Test both landscape and portrait.
+
+Build success does **not** prove these interaction steps on the physical iPad. iPadOS controls extension availability and may clamp the requested height.
