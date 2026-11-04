@@ -192,3 +192,59 @@ struct LabSystemSearchField: View {
         .frame(height: 46)
     }
 }
+
+
+/// Compact UIKit UIMenu / UIButton, embedded as ONE ordinary control in the
+/// existing HStack. It is not a UIToolbar and does not own the keyboard height.
+struct LabSystemMenuItem {
+    let id: String
+    let title: String
+    let symbol: String
+    let action: () -> Void
+}
+
+struct LabSystemMenuButton: UIViewRepresentable {
+    let items: [LabSystemMenuItem]
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeUIView(context: Context) -> UIButton {
+        let button = UIButton(type: .system)
+        button.accessibilityLabel = "Quick actions"
+        button.showsMenuAsPrimaryAction = true
+        button.contentHorizontalAlignment = .center
+        return button
+    }
+
+    func updateUIView(_ button: UIButton, context: Context) {
+        let coordinator = context.coordinator
+        coordinator.actions = Dictionary(
+            uniqueKeysWithValues: items.map { ($0.id, $0.action) }
+        )
+        var config: UIButton.Configuration
+        if #available(iOS 26.0, *) {
+            config = .glass()
+        } else {
+            config = .bordered()
+        }
+        config.image = UIImage(systemName: "ellipsis")
+        config.cornerStyle = .capsule
+        config.contentInsets = NSDirectionalEdgeInsets(
+            top: 5, leading: 10, bottom: 5, trailing: 10
+        )
+        button.configuration = config
+        let children = items.map { item in
+            UIAction(
+                title: item.title,
+                image: UIImage(systemName: item.symbol)
+            ) { [weak coordinator] _ in
+                coordinator?.actions[item.id]?()
+            }
+        }
+        button.menu = UIMenu(title: "Keyboard Lab", children: children)
+    }
+
+    final class Coordinator {
+        var actions: [String: () -> Void] = [:]
+    }
+}

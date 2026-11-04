@@ -106,6 +106,8 @@ jobs:
 
             - Real SwiftUI Liquid Glass buttons and GlassEffectContainer in fixed-size
               headers, while OpenKeyboardKit continues to own the typing key layout.
+            - UIKit UIButton.Configuration.glass() quick-actions UIMenu inside the
+              stable HStack, not inside an additional UIToolbar.
             - System UISearchBar appearance with an extension-owned focus router:
               tapping search never asks iPadOS for a second keyboard.
             - Existing long-press previews for tools, scripts, saved snippets and

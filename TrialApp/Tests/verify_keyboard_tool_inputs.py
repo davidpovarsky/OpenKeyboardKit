@@ -45,6 +45,9 @@ checks = {
     "keyboard toolbar remains KeyboardKit owned":
         "Keyboard.Toolbar {" in shell and
         "HStack(spacing: 8)" in shell and "LabGlassCommand(" in shell,
+    "native UIKit glass menu without UIKit toolbar": all(x in read("LabSystemChrome.swift") for x in
+        ["UIButton.Configuration", ".glass()", "UIMenu(title:", "UIAction("]) and
+        "LabSystemMenuButton(items: quickMenuItems)" in shell,
     "system search field never takes first responder":
         all(x in read("LabSystemChrome.swift") for x in
             ["UISearchBar(frame:", "bar.isUserInteractionEnabled = false",

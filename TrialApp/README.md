@@ -18,6 +18,9 @@ do not nest a second UIToolbar in OpenKeyboardKit's keyboard toolbar.
 - The stable Keyboard.Toolbar / HStack layout remains unchanged; each command
   is now a native SwiftUI Glass button on iOS 26+, with a bordered fallback on
   iOS 17-25. Fixed height protects keyboard key space.
+- A small UIKit UIButton.Configuration.glass() quick actions button with a genuine
+  UIMenu opens Wikipedia, Sefaria, Calculator, Clipboard, and Quick Brief.
+  It is embedded as an individual control in the existing HStack, not a UIToolbar.
 - Tool headers use native GlassEffectContainer with grouped Liquid Glass
   commands instead of custom translucent toolbar backgrounds.
 - The launcher, Sefaria, Wikipedia, dictionary, and GIF searches display a

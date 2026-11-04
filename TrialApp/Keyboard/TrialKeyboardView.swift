@@ -112,6 +112,22 @@ struct TrialKeyboardView: View {
         setExpanded(expanded)
     }
 
+    private var quickMenuItems: [LabSystemMenuItem] {
+        [
+            .init(id: "wiki", title: "Wikipedia", symbol: "globe.europe.africa",
+                  action: { openTool(.wikipedia) }),
+            .init(id: "sefaria", title: "Sefaria", symbol: "books.vertical",
+                  action: { openTool(.sefaria) }),
+            .init(id: "calculator", title: "Calculator",
+                  symbol: "plus.forwardslash.minus",
+                  action: { openTool(.calculator) }),
+            .init(id: "clipboard", title: "Clipboard", symbol: "doc.on.clipboard",
+                  action: { openTool(.clipboard) }),
+            .init(id: "brief", title: "Quick Brief", symbol: "slider.horizontal.3",
+                  action: { openTool(.quickForm) })
+        ]
+    }
+
     private var standardKeyboard: some View {
         KeyboardView(
             layout: KeyboardLayout.standard(for: keyboardContext),
@@ -140,12 +156,9 @@ struct TrialKeyboardView: View {
                                 openLibrary()
                             }
                         } else {
-                            toolButton("Search", symbol: "magnifyingglass") {
-                                openTool(.wikipedia)
-                            }
-                            toolButton("Sefaria", symbol: "books.vertical") {
-                                openTool(.sefaria)
-                            }
+                            LabSystemMenuButton(items: quickMenuItems)
+                                .frame(width: 43, height: 34)
+                                .accessibilityLabel("Quick actions menu")
                         }
                         toolButton("Scripts", symbol: "curlybraces.square") {
                             openTool(.scripts)
