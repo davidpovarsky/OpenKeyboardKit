@@ -20,6 +20,7 @@ struct TrialKeyboardView: View {
 
     @EnvironmentObject private var keyboardContext: KeyboardContext
     @State private var screen: LabScreen = .typing
+    @State private var useHebrewInTools = false
     @AppStorage("keyboard.lab.expanded") private var expanded = true
     @AppStorage("keyboard.lab.theme") private var themeName = LabTheme.classic.rawValue
 
@@ -55,10 +56,21 @@ struct TrialKeyboardView: View {
                 LabInputAccessory()
             }
 
-            // This exact OpenKeyboardKit view remains mounted in all screens.
-            // The router decides whether its keys edit a tool field or the host.
-            standardKeyboard
+            // Always keep real input keys under the tool workspace.
+            // Standard OpenKeyboardKit is retained for English and host typing.
+            // Hebrew is a native extension-owned layout, also routed to tool fields.
+            if screen != .typing && useHebrewInTools {
+                LabToolHebrewKeyboard(
+                    router: inputRouter,
+                    useEnglish: { useHebrewInTools = false },
+                    openTools: openLibrary,
+                    returnToTyping: returnToTyping
+                )
                 .fixedSize(horizontal: false, vertical: true)
+            } else {
+                standardKeyboard
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         .background(LabDesign.canvas)
@@ -116,6 +128,9 @@ struct TrialKeyboardView: View {
                         }
                         Spacer(minLength: 4)
                         if screen != .typing {
+                            toolButton("עברית", symbol: "globe") {
+                                useHebrewInTools = true
+                            }
                             toolButton("Tools", symbol: "square.grid.2x2") {
                                 openLibrary()
                             }
