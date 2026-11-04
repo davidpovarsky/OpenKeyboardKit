@@ -13,6 +13,7 @@ struct TrialKeyboardView: View {
     let services: Keyboard.Services
     let state: Keyboard.State
     let insertText: (String) -> Void
+    let deleteHost: () -> Void
     let readContext: () -> String
     let fullAccess: Bool
     @ObservedObject var inputRouter: LabInputRouter
@@ -64,7 +65,10 @@ struct TrialKeyboardView: View {
                     router: inputRouter,
                     useEnglish: { useHebrewInTools = false },
                     openTools: openLibrary,
-                    returnToTyping: returnToTyping
+                    returnToTyping: returnToTyping,
+                    insertHost: insertText,
+                    deleteHost: deleteHost,
+                    returnHost: { insertText("\n") }
                 )
                 .fixedSize(horizontal: false, vertical: true)
             } else {

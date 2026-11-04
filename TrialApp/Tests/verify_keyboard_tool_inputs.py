@@ -13,15 +13,27 @@ controller = read("KeyboardViewController.swift")
 checks = {
     "keyboard always appears beneath tool mode": "standardKeyboard" in shell and
         "LabInputAccessory()" in shell and "inputRouter.setToolMode" in shell,
-    "host input is intercepted when tools active": "isEditingTools" in router and
+    "host typing works while tools are visible":
+        "guard isEditingTools, target != nil, activeKey != nil else { return false }" in router and
         "if labInput?.intercept(gesture, action: action) == true" in router,
+    "host selection change restores input target": all(x in controller for x in
+        ["override func selectionDidChange(", "override func textDidChange(",
+         "labInput.activateHost()"]),
+    "manual To App is available without closing tools":
+        "router.activateHost()" in read("LabDesign.swift"),
     "backspace, space, and return routed": all(x in router for x in
         ["case .backspace:", "case .space:", "case .primary:", "func returnKey()"]),
     "caret and Unicode character boundaries supported": all(x in router for x in
         ["func moveCaret(", "source.index(source.startIndex", "source.index(before: to)"]),
     "real KeyboardKit handler installed": "services.actionHandler = handler" in controller,
+    "stable keyboard toolbar restored": all(x in shell for x in
+        ["Keyboard.Toolbar {", "HStack(spacing: 8)", "toolButton("]) and
+        "LabNativeToolbar" not in shell and
+        not (keyboard / "LabNativeChrome.swift").exists(),
     "Hebrew and English modes switchable": "LabToolHebrewKeyboard" in shell and
         "useHebrewInTools" in shell,
+    "Hebrew supports host and tool input": all(x in read("LabToolHebrewKeyboard.swift") for x in
+        ["router.isHostTarget", "insertHost(value)", "deleteHost()", "returnHost()"]),
     "native themed tool launcher": all(x in read("LabToolHome.swift") for x in
         ["LabAnimatedTile", "LabEditableField", ".introspect("]),
     "glass UI and Pow effects": all(x in read("LabDesign.swift") for x in

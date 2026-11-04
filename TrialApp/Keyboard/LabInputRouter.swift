@@ -6,6 +6,8 @@ final class LabInputRouter: ObservableObject {
     @Published private(set) var activeKey: String?
     @Published private(set) var caret = 0
     @Published private(set) var isEditingTools = false
+    /// True when the keys should write to the application's existing field.
+    var isHostTarget: Bool { activeKey == nil }
 
     private var target: Binding<String>?
     private var onReturn: (() -> Void)?
@@ -25,6 +27,9 @@ final class LabInputRouter: ObservableObject {
         self.onReturn = onReturn
         activeKey = key
     }
+
+    /// Release a tool-owned field and keep the tools open.
+    func activateHost() { unfocus() }
 
     func unfocus() {
         target = nil
@@ -66,7 +71,9 @@ final class LabInputRouter: ObservableObject {
 
     /// Returns true when the host should not receive the key.
     func intercept(_ gesture: Keyboard.Gesture, action: KeyboardAction) -> Bool {
-        guard isEditingTools else { return false }
+        // Only intercept when a real tool field has focus. With the tool
+        // browser open but no focused field, let KeyboardKit edit the host.
+        guard isEditingTools, target != nil, activeKey != nil else { return false }
         let trigger = gesture == .release || gesture == .repeatPress
         switch action {
         case .character(let char), .text(let char):
@@ -93,7 +100,8 @@ final class LabInputRouter: ObservableObject {
         case .tab:
             if trigger { insert("\t") }
             return true
-        case .emoji:
+        case .emoji(let emoji):
+            if trigger { insert(emoji.char) }
             return true
         case .nextKeyboard, .nextLocale, .dismissKeyboard, .keyboardType, .shift, .capsLock:
             return false

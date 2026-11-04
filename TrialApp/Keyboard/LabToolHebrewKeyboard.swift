@@ -1,12 +1,30 @@
 import SwiftUI
 
-/// A native SwiftUI Hebrew layout for editing fields inside a tool.
-/// It is NOT the host application's system keyboard, and never writes to the host.
+/// Hebrew key layout that follows the selected input target.
+//// When no tool field has focus, keys write to the host UITextDocumentProxy.
 struct LabToolHebrewKeyboard: View {
     @ObservedObject var router: LabInputRouter
     let useEnglish: () -> Void
     let openTools: () -> Void
     let returnToTyping: () -> Void
+    let insertHost: (String) -> Void
+    let deleteHost: () -> Void
+    let returnHost: () -> Void
+
+    private func type(_ value: String) {
+        if router.isHostTarget { insertHost(value) }
+        else { router.insert(value) }
+    }
+
+    private func erase() {
+        if router.isHostTarget { deleteHost() }
+        else { router.deletePrevious() }
+    }
+
+    private func submit() {
+        if router.isHostTarget { returnHost() }
+        else { router.returnKey() }
+    }
 
     @State private var symbols = false
     @AppStorage("keyboard.lab.theme") private var theme = LabTheme.classic.rawValue
@@ -33,12 +51,15 @@ struct LabToolHebrewKeyboard: View {
                     Label("Tools", systemImage: "square.grid.2x2")
                 }
                 Spacer()
-                Label("עברית", systemImage: "character.cursor.ibeam")
+                Label(router.isHostTarget ? "App" : "Tool", systemImage: "character.cursor.ibeam")
                     .font(.caption.weight(.medium))
                     .foregroundStyle(.secondary)
                 Spacer()
                 Button(action: useEnglish) {
                     Label("English", systemImage: "globe")
+                }
+                Button(action: { router.activateHost() }) {
+                    Label("To App", systemImage: "arrow.up.right")
                 }
                 Button(action: returnToTyping) {
                     Label("Done", systemImage: "checkmark.circle")
@@ -53,7 +74,7 @@ struct LabToolHebrewKeyboard: View {
             ForEach(rows.indices, id: \.self) { index in
                 HStack(spacing: 5) {
                     ForEach(rows[index], id: \.self) { char in
-                        Button { router.insert(char) } label: {
+                        Button { type(char) } label: {
                             Text(char)
                                 .font(.system(size: 18, weight: .regular))
                                 .foregroundStyle(.primary)
@@ -67,7 +88,7 @@ struct LabToolHebrewKeyboard: View {
                         .buttonStyle(.plain)
                     }
                     if index == 2 {
-                        Button { router.deletePrevious() } label: {
+                        Button { erase() } label: {
                             Image(systemName: "delete.left")
                                 .font(.system(size: 20))
                                 .foregroundStyle(.primary)
@@ -89,10 +110,10 @@ struct LabToolHebrewKeyboard: View {
                 Button(action: useEnglish) {
                     Image(systemName: "globe").frame(width: 53)
                 }
-                Button { router.insert(" ") } label: {
+                Button { type(" ") } label: {
                     Text("רווח").frame(maxWidth: .infinity)
                 }
-                Button { router.returnKey() } label: {
+                Button { submit() } label: {
                     Image(systemName: "return").frame(width: 74)
                 }
             }

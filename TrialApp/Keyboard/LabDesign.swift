@@ -119,7 +119,7 @@ struct LabInputAccessory: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Label(router.activeKey == nil ? "Tap a field to type" : "Editing tool field",
+            Label(router.activeKey == nil ? "Typing in app" : "Editing tool field",
                   systemImage: router.activeKey == nil ? "hand.tap" : "character.cursor.ibeam")
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(.secondary)
@@ -130,9 +130,12 @@ struct LabInputAccessory: View {
             Button { router.moveCaret(1) } label: {
                 Image(systemName: "chevron.right").frame(width: 28, height: 28)
             }
-            Button { router.unfocus() } label: {
-                Image(systemName: "checkmark.circle").frame(width: 30, height: 28)
+            Button { router.activateHost() } label: {
+                Label("To App", systemImage: "arrow.up.right.square")
+                    .font(.caption2.weight(.medium))
+                    .frame(height: 28)
             }
+            .accessibilityHint("Return keyboard input to the host without closing tools.")
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 15)

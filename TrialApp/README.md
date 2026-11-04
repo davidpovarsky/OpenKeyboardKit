@@ -1,4 +1,4 @@
-# Keyboard Lab v0.6.1 — Native SwiftUI Keyboard Workspace
+# Keyboard Lab v0.7.1 — Keyboard Stability Hotfix
 
 This experimental iOS/iPadOS application includes a **real system keyboard extension** based on the MIT-licensed [OpenKeyboardKit](https://github.com/valomedia/OpenKeyboardKit). The host app and extension are implemented in Swift and SwiftUI; JavaScriptCore powers user scripts. No web-based UI is embedded.
 
@@ -9,6 +9,21 @@ This experimental iOS/iPadOS application includes a **real system keyboard exten
 3. Settings > General > Keyboard > Keyboards > Add New Keyboard > Keyboard Lab.
 4. In Notes, long-press the globe icon and select Keyboard Lab. The host app includes an embedded-extension check; it does not prove that iPadOS registered it successfully.
 5. For permitted network and clipboard features, allow Full Access in iPadOS Settings. Independently enable Network On inside Script Studio.
+
+## Stability hotfix v0.7.1
+
+The v0.7.0 UI was reported to display a large blank translucent keyboard area on iPadOS 27.
+This release restores the SwiftUI keyboard toolbar from the last user-verified v0.6.1
+build and removes the experimental UIKit UIToolbar from the keyboard UI. The exact
+runtime root cause is not proven without device logs.
+
+While tools are open, characters go to a selected internal field; with no internal
+field active they go through the host textDocumentProxy. The To App control releases
+tool focus without closing the tool. A host selection change is also handled on
+a best-effort basis; iPadOS does not expose other applications' complete focus state.
+
+The new UIKit toolbars and UISearchBar experiment remains isolated in
+feature/native-toolbar-focus, not included in this release.
 
 ## Interface
 

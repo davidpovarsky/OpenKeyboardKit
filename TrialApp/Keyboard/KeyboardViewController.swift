@@ -95,6 +95,20 @@ final class KeyboardViewController: KeyboardInputViewController {
         view.setNeedsLayout()
     }
 
+    override func selectionDidChange(_ textInput: UITextInput?) {
+        super.selectionDidChange(textInput)
+        if labInput.isEditingTools && !labInput.isHostTarget {
+            labInput.activateHost()
+        }
+    }
+
+    override func textDidChange(_ textInput: UITextInput?) {
+        super.textDidChange(textInput)
+        if labInput.isEditingTools && !labInput.isHostTarget {
+            labInput.activateHost()
+        }
+    }
+
     override func viewWillSetupKeyboardView() {
         setupKeyboardView { [weak self] controller in
             TrialKeyboardView(
@@ -102,6 +116,9 @@ final class KeyboardViewController: KeyboardInputViewController {
                 state: controller.state,
                 insertText: { [weak self] text in
                     self?.textDocumentProxy.insertText(text)
+                },
+                deleteHost: { [weak self] in
+                    self?.textDocumentProxy.deleteBackward()
                 },
                 readContext: { [weak self] in
                     self?.textDocumentProxy.documentContextBeforeInput ?? ""

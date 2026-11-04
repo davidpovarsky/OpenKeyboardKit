@@ -8,6 +8,7 @@ on:
       - fix/keyboard-bottom-docking
       - feature/keyboard-lab-suite
       - feature/keyboard-native-input-redesign
+      - hotfix/keyboard-restore-v071
     paths:
       - 'TrialApp/**'
       - 'TrialKeyboard.yml'
@@ -69,7 +70,7 @@ jobs:
           assert keyboard["NSExtension"]["NSExtensionPointIdentifier"] == "com.apple.keyboard-service"
           assert keyboard["NSExtension"]["NSExtensionPrincipalClass"] == "TrialKeyboardExtension.KeyboardViewController"
           assert keyboard["CFBundleIdentifier"] == host["CFBundleIdentifier"] + ".extension"
-          assert keyboard["CFBundleShortVersionString"] == "0.6.1"
+          assert keyboard["CFBundleShortVersionString"] == "0.7.1"
           assert attrs["RequestsOpenAccess"] is True
           assert attrs["IsASCIICapable"] is True
           assert attrs["PrimaryLanguage"] == "en-US"
@@ -89,24 +90,22 @@ jobs:
           path: trial-build.log
           if-no-files-found: ignore
       - name: Publish Keyboard Lab unsigned IPA (optional)
-        if: github.ref == 'refs/heads/feature/keyboard-native-input-redesign'
+        if: github.ref == 'refs/heads/hotfix/keyboard-restore-v071'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: keyboard-lab-v0.6.1
-          name: "Keyboard Lab v0.6.1 - System Previews & Interactions"
+          tag_name: keyboard-lab-v0.7.1
+          name: "Keyboard Lab v0.7.1 - Restore Stable Keyboard"
           target_commitish: ${{ github.sha }}
           prerelease: true
           files: TrialKeyboard-unsigned.ipa
           fail_on_unmatched_files: true
           body: |
-            Keyboard Lab v0.6.0: native SwiftUI tools and persistent keyboard.
-            - The keyboard stays visible under every tool and Script Studio.
-            - Text fields are routed to the active tool, not to the host document.
-            - Backspace, space, return, caret movement and English/Hebrew tool input.
-            - Native Liquid Glass (iPadOS 26+), SF Symbols, Pow animations, SwiftUI Introspect.
-            - System context menu previews for tools, scripts, search results, notes, snippets and clipboard.
-            - Native long-press actions, selection feedback and iPad pointer hover lift.
-            - Sefaria, Wikipedia, dictionary, text actions, calculator, notes, snippets, media, GIFs, clipboard and JavaScriptCore plugins.
-            - CI checks every input panel and verifies the embedded keyboard extension.
-            - Unsigned IPA. When installing through SideStore/AltStore, keep and sign the embedded .appex.
-            This is an experimental build. On-device UI and SideStore signing behavior still require acceptance testing.
+            Emergency stability hotfix built from the known-working v0.6.1 UI.
+            - Reverts experimental UIKit UIToolbar embedded in OpenKeyboardKit keyboard toolbar.
+            - Restores the proven SwiftUI key row and system-wide input extension.
+            - Fixes input target routing: when no internal field is focused, keys write to the host app.
+            - External selection-change callbacks attempt to return focus to host; To App fallback.
+            - Hebrew tool layout can type into the host as well.
+            - Preserves existing native SwiftUI tool launcher, scripts, context previews, and persistent keys.
+            - Xcode 27 build; unsigned IPA. Sign app and embedded keyboard .appex with SideStore/AltStore.
+            - Compiles and passes static checks; actual rendering on iPad still requires device verification.
