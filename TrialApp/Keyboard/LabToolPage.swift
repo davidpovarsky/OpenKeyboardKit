@@ -166,31 +166,22 @@ struct LabSearchPanel: View {
 
     var body: some View {
         VStack(spacing: 9) {
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
-                Text(query.isEmpty ? "Type a word to search..." : query)
-                    .foregroundStyle(query.isEmpty ? .secondary : .primary)
-                    .font(.system(size: 15))
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity, minHeight: 29, alignment: .leading)
+                LabEditableField(id: "search." + tool.rawValue,
+                                 placeholder: "Search " + tool.title,
+                                 text: $query, minHeight: 43,
+                                 submit: runSearch)
                 if !query.isEmpty {
-                    Button {
-                        query = ""
-                        model.cancel()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
+                    Button { query = ""; model.cancel() } label: {
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, 14)
-            .frame(height: 45)
-            .background(Color(uiColor: .tertiarySystemBackground),
-                        in: RoundedRectangle(cornerRadius: 14))
             .padding(.horizontal, 13)
-            .padding(.top, 8)
+            .padding(.top, 7)
 
             HStack(spacing: 10) {
                 Button("From cursor") {
@@ -268,9 +259,7 @@ struct LabSearchPanel: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            Divider()
-            LabInlineKeyboard(text: $query, submit: runSearch)
-                .fixedSize(horizontal: false, vertical: true)
+
         }
         .background(Color(uiColor: .secondarySystemBackground))
         .onDisappear { model.cancel() }
