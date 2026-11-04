@@ -98,11 +98,8 @@ struct LabNotepadPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 13) {
             LabHint(text: "Private quick notes stored in the keyboard extension. Tap any note to insert its text.", icon: "note.text")
-            TextEditor(text: $draft)
-                .frame(minHeight: 100)
-                .padding(8)
-                .background(Color(uiColor: .tertiarySystemBackground),
-                            in: RoundedRectangle(cornerRadius: 14))
+            LabEditableField(id: "notes.draft", placeholder: "Write a private note",
+                             text: $draft, multiline: true, minHeight: 100)
 
             LabActionButton(text: "Save note", icon: "plus") {
                 let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -174,8 +171,8 @@ struct LabSnippetsPanel: View {
                 }
             }
             HStack(spacing: 9) {
-                TextField("New snippet", text: $draft)
-                    .textInputAutocapitalization(.sentences)
+                LabEditableField(id: "snippets.new",
+                                 placeholder: "New snippet", text: $draft)
                 Button {
                     let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !text.isEmpty else { return }
