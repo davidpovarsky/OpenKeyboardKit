@@ -3,7 +3,7 @@ import SwiftUI
 /// Tool identifiers are stable because they are persisted in user preferences.
 enum LabTool: String, CaseIterable, Identifiable, Hashable {
     case emoji, clipboard, notes, translate, dictionary, ai, textFX, calculator
-    case conversion, sefaria, wikipedia, templates, handwriting, media
+    case conversion, sefaria, wikipedia, templates, handwriting, media, gif
     case themes, profiles, layouts, scripts
 
     var id: String { rawValue }
