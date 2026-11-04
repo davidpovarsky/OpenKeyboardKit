@@ -7,6 +7,7 @@ on:
       - feature/native-js-script-lab
       - fix/keyboard-bottom-docking
       - feature/keyboard-lab-suite
+      - feature/keyboard-native-input-redesign
     paths:
       - 'TrialApp/**'
       - 'TrialKeyboard.yml'
@@ -20,14 +21,12 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-15-intel
+    runs-on: xcode-27
     timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
-      - name: Select Xcode 16.4
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: '16.4'
+      - name: Verify Xcode toolchain
+        run: xcodebuild -version
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate Xcode project
@@ -68,7 +67,7 @@ jobs:
           assert keyboard["NSExtension"]["NSExtensionPointIdentifier"] == "com.apple.keyboard-service"
           assert keyboard["NSExtension"]["NSExtensionPrincipalClass"] == "TrialKeyboardExtension.KeyboardViewController"
           assert keyboard["CFBundleIdentifier"] == host["CFBundleIdentifier"] + ".extension"
-          assert keyboard["CFBundleShortVersionString"] == "0.5.0"
+          assert keyboard["CFBundleShortVersionString"] == "0.6.0"
           assert attrs["RequestsOpenAccess"] is True
           assert attrs["IsASCIICapable"] is True
           assert attrs["PrimaryLanguage"] == "en-US"
@@ -88,11 +87,11 @@ jobs:
           path: trial-build.log
           if-no-files-found: ignore
       - name: Publish Keyboard Lab unsigned IPA
-        if: github.ref == 'refs/heads/feature/keyboard-lab-suite'
+        if: github.ref == 'refs/heads/feature/keyboard-native-input-redesign'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: keyboard-lab-v0.5.0
-          name: "Keyboard Lab v0.5.0 - Native Search & GIF Gallery"
+          tag_name: keyboard-lab-v0.6.0
+          name: "Keyboard Lab v0.6.0 - Native Tool Input & Glass"
           target_commitish: ${{ github.sha }}
           prerelease: true
           files: TrialKeyboard-unsigned.ipa
