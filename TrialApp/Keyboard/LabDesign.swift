@@ -118,26 +118,32 @@ struct LabInputAccessory: View {
     @EnvironmentObject private var router: LabInputRouter
 
     var body: some View {
-        HStack(spacing: 8) {
-            Label(router.activeKey == nil ? "Tap a field to type" : "Editing tool field",
-                  systemImage: router.activeKey == nil ? "hand.tap" : "character.cursor.ibeam")
-                .font(.caption2.weight(.medium))
-                .foregroundStyle(.secondary)
-            Spacer()
-            Button { router.moveCaret(-1) } label: {
-                Image(systemName: "chevron.left").frame(width: 28, height: 28)
-            }
-            Button { router.moveCaret(1) } label: {
-                Image(systemName: "chevron.right").frame(width: 28, height: 28)
-            }
-            Button { router.unfocus() } label: {
-                Image(systemName: "checkmark.circle").frame(width: 30, height: 28)
-            }
-        }
-        .buttonStyle(.plain)
-        .padding(.horizontal, 15)
-        .frame(height: 33)
-        .background(.thinMaterial)
+        LabNativeToolbar(
+            title: router.isHostTarget ? "Typing in App" : "Editing Tool",
+            leading: [
+                LabToolbarCommand(
+                    id: "focus-host", title: "App", symbol: "rectangle.and.pencil.and.ellipsis",
+                    action: { router.activateHost() }
+                )
+            ],
+            trailing: [
+                LabToolbarCommand(
+                    id: "caret-left", title: "Left", symbol: "chevron.left",
+                    action: { router.moveCaret(-1) }
+                ),
+                LabToolbarCommand(
+                    id: "caret-right", title: "Right", symbol: "chevron.right",
+                    action: { router.moveCaret(1) }
+                ),
+                LabToolbarCommand(
+                    id: "focus-done", title: "Done", symbol: "checkmark.circle",
+                    style: .done,
+                    action: { router.activateHost() }
+                )
+            ]
+        )
+        .frame(height: 43)
+        .accessibilityHint("Tap App to send typing to the host text field without closing tools.")
     }
 }
 

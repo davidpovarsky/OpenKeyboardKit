@@ -19,38 +19,30 @@ struct ScriptStudioView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 10) {
-                Button(action: onClose) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .semibold))
-                        .frame(width: 36, height: 35)
-                }
-                .buttonStyle(.plain)
-                Image(systemName: "curlybraces.square.fill")
-                    .font(.title2)
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.indigo)
-                    .frame(width: 34, height: 34)
-                    .labGlass(10)
-                Text("Script Studio")
-                    .font(.system(size: 17, weight: .semibold))
-                Spacer()
-                if editing {
-                    Button("Cancel") { editing = false }
-                        .font(.caption.weight(.medium))
-                } else {
-                    Button {
-                        openEditor(nil)
-                    } label: {
-                        Label("New JS", systemImage: "plus")
-                            .font(.caption.weight(.semibold))
-                    }
-                    .buttonStyle(.bordered)
-                }
-            }
-            .padding(.horizontal, 12)
-            .frame(height: 45)
-            .background(.ultraThinMaterial)
+            LabNativeToolbar(
+                title: "Script Studio",
+                leading: [
+                    LabToolbarCommand(
+                        id: "script.back", title: "Back", symbol: "chevron.left",
+                        action: onClose
+                    )
+                ],
+                trailing: [
+                    LabToolbarCommand(
+                        id: "script.editor",
+                        title: editing ? "Cancel" : "New Script",
+                        symbol: editing ? "xmark" : "plus",
+                        action: {
+                            if editing {
+                                editing = false
+                            } else {
+                                openEditor(nil)
+                            }
+                        }
+                    )
+                ]
+            )
+            .frame(height: 49)
 
             Divider().opacity(0.35)
 

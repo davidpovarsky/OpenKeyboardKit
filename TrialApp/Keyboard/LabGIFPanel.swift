@@ -90,25 +90,24 @@ struct LabGIFPanel: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            HStack {
-                Image(systemName: "sparkles.tv")
-                    .foregroundStyle(.pink)
-                LabEditableField(
-                    id: "gif.query", placeholder: "Search animated GIFs",
-                    text: $query, minHeight: 40,
-                    submit: { if ready { model.search(query) } }
+            HStack(spacing: 7) {
+                LabNativeSearchBar(
+                    id: "gif.query",
+                    text: $query,
+                    placeholder: "Search animated GIFs",
+                    onSubmit: { if ready { model.search(query) } }
                 )
-                Spacer()
-                Button("Search") { if ready { model.search(query) } }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(!ready || query.isEmpty)
+                Button {
+                    if ready { model.search(query) }
+                } label: {
+                    Label("Search", systemImage: "magnifyingglass")
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!ready || query.isEmpty)
             }
-            .padding(.horizontal, 13)
             .frame(height: 50)
-            .background(Color(uiColor: .tertiarySystemBackground),
-                        in: RoundedRectangle(cornerRadius: 14))
-            .padding(.horizontal, 13)
-            .padding(.top, 7)
+            .padding(.horizontal, 8)
+            .padding(.top, 6)
 
             if !ready {
                 Text("Enable Full Access and Network On to search the public GIF library.")

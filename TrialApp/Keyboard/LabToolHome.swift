@@ -27,53 +27,33 @@ struct LabToolHome: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 11) {
-                Button(action: onClose) {
-                    Image(systemName: "keyboard")
-                        .font(.system(size: 16, weight: .medium))
-                        .frame(width: 34, height: 34)
-                        .labGlass(12)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Back to keyboard")
+            LabNativeToolbar(
+                title: "Your workspace",
+                leading: [
+                    LabToolbarCommand(
+                        id: "home.keyboard", title: "Keyboard", symbol: "keyboard",
+                        action: onClose
+                    )
+                ],
+                trailing: [
+                    LabToolbarCommand(
+                        id: "home.favorites",
+                        title: filter == 1 ? "All Tools" : "Favorites",
+                        symbol: filter == 1 ? "square.grid.2x2" : "star",
+                        action: { filter = filter == 1 ? 0 : 1 }
+                    )
+                ]
+            )
+            .frame(height: 52)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Your workspace")
-                        .font(.system(size: 18, weight: .semibold, design: .rounded))
-                    Text("Everything you need, where you type")
-                        .font(.caption2).foregroundStyle(.secondary)
-                }
-                Spacer()
-                Image(systemName: "square.stack.3d.up.fill")
-                    .font(.system(size: 18, weight: .light))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(accent)
-                    .frame(width: 35, height: 35)
-                    .labGlass(12)
-            }
-            .padding(.horizontal, 14)
-            .frame(height: 59)
-
-            HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                LabEditableField(
-                    id: "launcher.search",
-                    placeholder: "Search all tools",
-                    text: $search,
-                    minHeight: 37
-                )
-                if !search.isEmpty {
-                    Button { search = "" } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 13)
-            .padding(.bottom, 7)
+            LabNativeSearchBar(
+                id: "launcher.search",
+                text: $search,
+                placeholder: "Search all tools"
+            )
+            .frame(height: 51)
+            .padding(.horizontal, 8)
+            .padding(.bottom, 3)
 
             HStack(spacing: 8) {
                 Picker("View", selection: $filter) {

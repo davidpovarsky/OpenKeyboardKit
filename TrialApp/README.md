@@ -1,4 +1,4 @@
-# Keyboard Lab v0.6.1 — Native SwiftUI Keyboard Workspace
+# Keyboard Lab v0.7.0 — Native UIKit Toolbars and Focus Routing
 
 This experimental iOS/iPadOS application includes a **real system keyboard extension** based on the MIT-licensed [OpenKeyboardKit](https://github.com/valomedia/OpenKeyboardKit). The host app and extension are implemented in Swift and SwiftUI; JavaScriptCore powers user scripts. No web-based UI is embedded.
 
@@ -28,6 +28,16 @@ Expanded and compact keyboard heights are requested through Auto Layout; actual 
 - Tool cards use iPad pointer hover lift and SwiftUI sensory-feedback triggers where the device supports haptics.
 - Context previews are **system overlays** managed by iPadOS. The keyboard extension cannot control whether the overlay can transcend its allotted input view, so test in Notes on the actual iPad.
 - Previews are built entirely in SwiftUI and do not transmit text or execute a script merely by previewing.
+
+## System controls and input focus (v0.7.0)
+
+- The top chrome, keyboard control row, and Script Studio navigation are real UIKit UIToolbar with UIBarButtonItem actions, presented with the operating system's appearance.
+- Tool, Wikipedia, Sefaria, Dictionary, and GIF search fields use UISearchBar. searchBarShouldBeginEditing deliberately declines becoming first responder; tapping them selects an extension-owned input binding for the already-visible keyboard.
+- **Host by default** while browsing tools: if no extension field is active, KeyboardKit sends keys to the host UITextDocumentProxy exactly as it does in typing mode. Tapping any internal field switches key delivery to the extension field. To App switches explicitly back to the host without closing tools.
+- UIInputViewController selection/text change callbacks provide best-effort automatic restoration of host focus when the user moves the caret in the host app.
+- Hebrew tool keys likewise deliver to host via the text proxy when no internal field is selected.
+- **iPadOS limitation**: iOS does not provide a universal, reliable API for observing the precise first responder of a separate host app from a third-party keyboard extension. For hosts that do not issue selection change callbacks, To App provides a predictable fallback.
+- The extension does not request a second keyboard and does not control the actual host's focus. Use native keyboard input field tests in Notes, ChatGPT, and other host apps to confirm expected routing.
 
 ## Working tools
 

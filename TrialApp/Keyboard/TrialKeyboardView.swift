@@ -13,6 +13,7 @@ struct TrialKeyboardView: View {
     let services: Keyboard.Services
     let state: Keyboard.State
     let insertText: (String) -> Void
+    let deleteHost: () -> Void
     let readContext: () -> String
     let fullAccess: Bool
     @ObservedObject var inputRouter: LabInputRouter
@@ -64,7 +65,10 @@ struct TrialKeyboardView: View {
                     router: inputRouter,
                     useEnglish: { useHebrewInTools = false },
                     openTools: openLibrary,
-                    returnToTyping: returnToTyping
+                    returnToTyping: returnToTyping,
+                    insertHost: insertText,
+                    deleteHost: deleteHost,
+                    returnHost: { insertText("\n") }
                 )
                 .fixedSize(horizontal: false, vertical: true)
             } else {
@@ -107,6 +111,46 @@ struct TrialKeyboardView: View {
         setExpanded(expanded)
     }
 
+    private var toolbarLeading: [LabToolbarCommand] {
+        if screen == .typing {
+            return [
+                .init(id: "kb.tools", title: "Tools",
+                      symbol: "square.grid.2x2", action: openLibrary),
+                .init(id: "kb.wikipedia", title: "Search",
+                      symbol: "magnifyingglass", action: { openTool(.wikipedia) })
+            ]
+        }
+        return [
+            .init(id: "kb.back", title: "Keyboard",
+                  symbol: "keyboard", action: returnToTyping),
+            .init(id: "kb.alltools", title: "Tools",
+                  symbol: "square.grid.2x2", action: openLibrary),
+            .init(id: "kb.hebrew", title: "עברית",
+                  symbol: "globe", action: { useHebrewInTools = true })
+        ]
+    }
+
+    private var toolbarTrailing: [LabToolbarCommand] {
+        if screen == .typing {
+            return [
+                .init(id: "kb.scripts", title: "Scripts",
+                      symbol: "curlybraces.square", action: { openTool(.scripts) }),
+                .init(id: "kb.expand", title: expanded ? "Compact" : "Expand",
+                      symbol: expanded ?
+                        "arrow.down.right.and.arrow.up.left" :
+                        "arrow.up.left.and.arrow.down.right",
+                      action: changeHeight)
+            ]
+        }
+        return [
+            .init(id: "kb.scripts", title: "Scripts",
+                  symbol: "curlybraces.square", action: { openTool(.scripts) }),
+            .init(id: "kb.host", title: "To App",
+                  symbol: "rectangle.and.pencil.and.ellipsis",
+                  style: .done, action: { inputRouter.activateHost() })
+        ]
+    }
+
     private var standardKeyboard: some View {
         KeyboardView(
             layout: KeyboardLayout.standard(for: keyboardContext),
@@ -118,68 +162,13 @@ struct TrialKeyboardView: View {
             emojiKeyboard: { $0.view },
             toolbar: { _ in
                 Keyboard.Toolbar {
-                    HStack(spacing: 8) {
-                        toolButton(
-                            screen == .typing ? "Tools" : "Keyboard",
-                            symbol: screen == .typing ? "square.grid.2x2" : "keyboard"
-                        ) {
-                            if screen == .typing { openLibrary() }
-                            else { returnToTyping() }
-                        }
-                        Spacer(minLength: 4)
-                        if screen != .typing {
-                            toolButton("עברית", symbol: "globe") {
-                                useHebrewInTools = true
-                            }
-                            toolButton("Tools", symbol: "square.grid.2x2") {
-                                openLibrary()
-                            }
-                        } else {
-                            toolButton("Search", symbol: "magnifyingglass") {
-                                openTool(.wikipedia)
-                            }
-                            toolButton("Sefaria", symbol: "books.vertical") {
-                                openTool(.sefaria)
-                            }
-                        }
-                        toolButton("Scripts", symbol: "curlybraces.square") {
-                            openTool(.scripts)
-                        }
-                        Spacer(minLength: 4)
-                        if screen == .typing {
-                            toolButton(
-                                expanded ? "Compact" : "Expand",
-                                symbol: expanded ?
-                                    "arrow.down.right.and.arrow.up.left" :
-                                    "arrow.up.left.and.arrow.down.right"
-                            ) {
-                                changeHeight()
-                            }
-                        } else {
-                            toolButton("Done", symbol: "checkmark.circle") {
-                                inputRouter.unfocus()
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 10)
-                    .frame(maxWidth: .infinity)
+                    LabNativeToolbar(
+                        leading: toolbarLeading,
+                        trailing: toolbarTrailing
+                    )
+                    .frame(height: 46)
                 }
             }
         )
-    }
-
-    private func toolButton(_ title: String, symbol: String,
-                            action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Label(title, systemImage: symbol)
-                .font(.system(size: 12, weight: .medium))
-                .labelStyle(.titleAndIcon)
-                .foregroundStyle(.primary)
-                .padding(.vertical, 7)
-                .padding(.horizontal, 4)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(title)
     }
 }

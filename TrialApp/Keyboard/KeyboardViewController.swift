@@ -95,6 +95,25 @@ final class KeyboardViewController: KeyboardInputViewController {
         view.setNeedsLayout()
     }
 
+    // Apple's UITextInputDelegate informs keyboards about external host
+    // cursor/selection changes. A tap or selection change in the host returns
+    // focus to the host without dismissing the visible tool panel.
+    override func selectionDidChange(_ textInput: UITextInput?) {
+        super.selectionDidChange(textInput)
+        if labInput.isEditingTools && !labInput.isHostTarget {
+            labInput.activateHost()
+        }
+    }
+
+    override func textDidChange(_ textInput: UITextInput?) {
+        super.textDidChange(textInput)
+        // External host edits should restore the host input target.
+        // Tool-field keystrokes do not edit the host and do not fire this.
+        if labInput.isEditingTools && !labInput.isHostTarget {
+            labInput.activateHost()
+        }
+    }
+
     override func viewWillSetupKeyboardView() {
         setupKeyboardView { [weak self] controller in
             TrialKeyboardView(
@@ -102,6 +121,9 @@ final class KeyboardViewController: KeyboardInputViewController {
                 state: controller.state,
                 insertText: { [weak self] text in
                     self?.textDocumentProxy.insertText(text)
+                },
+                deleteHost: { [weak self] in
+                    self?.textDocumentProxy.deleteBackward()
                 },
                 readContext: { [weak self] in
                     self?.textDocumentProxy.documentContextBeforeInput ?? ""

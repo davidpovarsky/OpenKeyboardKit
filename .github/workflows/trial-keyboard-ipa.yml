@@ -8,6 +8,7 @@ on:
       - fix/keyboard-bottom-docking
       - feature/keyboard-lab-suite
       - feature/keyboard-native-input-redesign
+      - feature/native-toolbar-focus
     paths:
       - 'TrialApp/**'
       - 'TrialKeyboard.yml'
@@ -69,7 +70,7 @@ jobs:
           assert keyboard["NSExtension"]["NSExtensionPointIdentifier"] == "com.apple.keyboard-service"
           assert keyboard["NSExtension"]["NSExtensionPrincipalClass"] == "TrialKeyboardExtension.KeyboardViewController"
           assert keyboard["CFBundleIdentifier"] == host["CFBundleIdentifier"] + ".extension"
-          assert keyboard["CFBundleShortVersionString"] == "0.6.1"
+          assert keyboard["CFBundleShortVersionString"] == "0.7.0"
           assert attrs["RequestsOpenAccess"] is True
           assert attrs["IsASCIICapable"] is True
           assert attrs["PrimaryLanguage"] == "en-US"
@@ -89,18 +90,23 @@ jobs:
           path: trial-build.log
           if-no-files-found: ignore
       - name: Publish Keyboard Lab unsigned IPA (optional)
-        if: github.ref == 'refs/heads/feature/keyboard-native-input-redesign'
+        if: github.ref == 'refs/heads/feature/native-toolbar-focus'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: keyboard-lab-v0.6.1
-          name: "Keyboard Lab v0.6.1 - System Previews & Interactions"
+          tag_name: keyboard-lab-v0.7.0
+          name: "Keyboard Lab v0.7.0 - Native Toolbar Search & Focus Routing"
           target_commitish: ${{ github.sha }}
           prerelease: true
           files: TrialKeyboard-unsigned.ipa
           fail_on_unmatched_files: true
           body: |
-            Keyboard Lab v0.6.0: native SwiftUI tools and persistent keyboard.
+            Keyboard Lab v0.7.0: native UIKit toolbars and search controls with host/tool input focus.
             - The keyboard stays visible under every tool and Script Studio.
+            - Tool navigation and input bar now use genuine UIKit UIToolbar and system UIBarButtonItems.
+            - Search tools use genuine UISearchBar without summoning a second system keyboard.
+            - When no tool field is active, keys pass through to the host app.
+            - Host text/selection change callbacks return focus to the host, with explicit To App controls.
+            - Native Hebrew keys also route to host when no internal field is active.
             - Text fields are routed to the active tool, not to the host document.
             - Backspace, space, return, caret movement and English/Hebrew tool input.
             - Native Liquid Glass (iPadOS 26+), SF Symbols, Pow animations, SwiftUI Introspect.
