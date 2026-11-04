@@ -162,7 +162,7 @@ struct ScriptStudioView: View {
 
     private var editor: some View {
         ScrollView {
-        VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 10) {
             LabEditableField(id: "studio.scriptTitle",
                              placeholder: "Script title", text: $codeTitle)
 
@@ -200,8 +200,9 @@ struct ScriptStudioView: View {
                     .foregroundStyle(.secondary)
             }
             LabHint(text: "Only run code you trust. With Network On, scripts can send visible typing context to remote services.")
+            }
+            .padding(12)
         }
-        .padding(12)
     }
 
     private func panelView(_ panel: ScriptPanel) -> some View {
