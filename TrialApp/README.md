@@ -1,4 +1,4 @@
-# Keyboard Lab v0.4 — Native iPad Keyboard Toolkit
+# Keyboard Lab v0.5 — Native iPad Keyboard Toolkit
 
 This experimental iOS/iPadOS application includes a **real system keyboard extension** based on the MIT-licensed [OpenKeyboardKit](https://github.com/valomedia/OpenKeyboardKit). The host app and extension are implemented in Swift and SwiftUI; JavaScriptCore powers user scripts. No web-based UI is embedded.
 
@@ -25,7 +25,8 @@ Expanded and compact keyboard heights are requested through Auto Layout; actual 
 | --- | --- | --- |
 | Sefaria search | Network | POST /api/search-wrapper; Hebrew lemmatizer |
 | Wikipedia | Network | MediaWiki OpenSearch, chooses Hebrew/English |
-| Dictionary | Network | Free English Dictionary API |
+| Dictionary | Network | Free English Dictionary API; native Hebrew/English search keypad |
+| GIF Gallery | Network | Wikimedia Commons GIFs, copies original GIF data when requested |
 | Translator | Network | Experimental public MyMemory API, explicit consent |
 | Text FX | Local | Hebrew niqqud, whitespace, HTML, Markdown, case and more |
 | Calculator | Local | JavaScriptCore arithmetic, no network |
@@ -76,9 +77,9 @@ The script engine supports only HTTPS GET/POST, with explicit network opt-in. Re
 - iPadOS may reserve a bottom system keyboard strip outside the extension's drawable region.
 - The standard typing engine is English QWERTY. Hebrew text can be inserted by tools, but **Hebrew typing, predictions and Hebrew autocorrect are not yet implemented**.
 - Speech recognition directly in a keyboard extension is not permitted because microphone access is restricted; dictation is not included.
-- GIF search and remote generative AI providers are not configured or represented as operational.
+- Remote generative AI is not configured as operational. GIF gallery is implemented using Wikimedia Commons with static previews; selected GIF data is copied to the clipboard on request.
 - Images copied through the clipboard can only be pasted into host applications that accept them. File pickers cannot attach arbitrary documents to other apps.
-- TextField/TextEditor in a custom keyboard extension may behave differently between host apps; verify on the intended iPad.
+- TextField/TextEditor in a custom keyboard extension may behave differently between host apps; the Sefaria/Wikipedia/Dictionary and GIF searches use a dedicated SwiftUI Hebrew/English keypad to avoid secondary keyboard activation.
 - External APIs (Sefaria, Wikipedia, DictionaryAPI, MyMemory) may change or become unavailable. Only explicit searches send queries.
 - App Group synchronization with the host application has not yet been configured and may require new signing entitlements.
 - A full native UI cannot bypass iPadOS sandboxing, privacy permissions, or extension resource limits.

@@ -26,6 +26,7 @@ struct TrialHomeView: View {
         .init(title: "Notepad", subtitle: "Local notes", symbol: "note.text", tint: .yellow),
         .init(title: "Handwriting", subtitle: "Apple Pencil canvas", symbol: "pencil.tip", tint: .red),
         .init(title: "Photos & Files", subtitle: "Apple system pickers", symbol: "photo.on.rectangle", tint: .blue),
+        .init(title: "GIF Gallery", subtitle: "Wikimedia Commons GIFs", symbol: "play.rectangle", tint: .pink),
         .init(title: "Script Studio", subtitle: "Native UI and JSCore", symbol: "curlybraces.square", tint: .purple)
     ]
 
@@ -86,7 +87,7 @@ struct TrialHomeView: View {
                 Text("Native SwiftUI tools. Your shortcuts. Your workflows.")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.85))
-                Text("Keyboard Lab · 0.4")
+                Text("Keyboard Lab · 0.5")
                     .font(.caption.monospaced())
                     .foregroundStyle(.white.opacity(0.72))
             }

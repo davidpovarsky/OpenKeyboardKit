@@ -24,3 +24,9 @@ xcuserdata/
 
 # Visual Studio Code
 .vscode
+
+# Local SentinelX safe-edit backups and downloaded build artefacts
+*.bak.*
+/dist/
+/dist_v02/
+/trial-running-*.log

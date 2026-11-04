@@ -24,6 +24,7 @@ enum LabTool: String, CaseIterable, Identifiable, Hashable {
         case .templates: return "Snippets"
         case .handwriting: return "Handwriting"
         case .media: return "Photos & Files"
+        case .gif: return "GIF Gallery"
         case .themes: return "Themes"
         case .profiles: return "Profiles"
         case .layouts: return "Layouts"
@@ -47,6 +48,7 @@ enum LabTool: String, CaseIterable, Identifiable, Hashable {
         case .templates: return "One-tap responses"
         case .handwriting: return "Draw with Apple Pencil"
         case .media: return "Pick photos and files"
+        case .gif: return "Search and copy GIFs"
         case .themes: return "Customize appearance"
         case .profiles: return "Personal shortcuts"
         case .layouts: return "Keyboard behavior"
@@ -70,6 +72,7 @@ enum LabTool: String, CaseIterable, Identifiable, Hashable {
         case .templates: return "text.bubble"
         case .handwriting: return "pencil.tip.crop.circle"
         case .media: return "photo.on.rectangle.angled"
+        case .gif: return "play.rectangle"
         case .themes: return "paintpalette"
         case .profiles: return "person.crop.circle"
         case .layouts: return "square.grid.2x2"
@@ -83,7 +86,7 @@ enum LabTool: String, CaseIterable, Identifiable, Hashable {
         case .clipboard, .translate, .wikipedia: return Color(red: 0.12, green: 0.53, blue: 0.88)
         case .dictionary, .media: return Color(red: 0.54, green: 0.40, blue: 0.29)
         case .ai, .scripts: return Color(red: 0.68, green: 0.28, blue: 0.83)
-        case .textFX, .handwriting: return Color(red: 0.84, green: 0.29, blue: 0.52)
+        case .textFX, .handwriting, .gif: return Color(red: 0.84, green: 0.29, blue: 0.52)
         case .calculator, .layouts: return Color(red: 0.96, green: 0.49, blue: 0.16)
         case .conversion, .templates: return Color(red: 0.18, green: 0.66, blue: 0.37)
         case .sefaria: return Color(red: 0.20, green: 0.43, blue: 0.69)

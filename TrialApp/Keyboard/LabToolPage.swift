@@ -59,6 +59,18 @@ struct LabToolPage: View {
                 )
             } else if tool == .handwriting {
                 LabHandwritingPanel(insertText: insertText, fullAccess: fullAccess)
+            } else if tool == .gif {
+                LabGIFPanel(fullAccess: fullAccess, networkAllowed: allowNetwork)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if [.wikipedia, .sefaria, .dictionary].contains(tool) {
+                LabSearchPanel(
+                    tool: tool,
+                    fullAccess: fullAccess,
+                    networkAllowed: allowNetwork,
+                    readContext: readContext,
+                    insertText: insertText
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 14) {
@@ -78,9 +90,7 @@ struct LabToolPage: View {
     private var content: some View {
         switch tool {
         case .wikipedia, .sefaria, .dictionary:
-            LabSearchPanel(tool: tool, fullAccess: fullAccess,
-                           networkAllowed: allowNetwork,
-                           readContext: readContext, insertText: insertText)
+            EmptyView()
         case .textFX, .ai:
             LabTextToolsPanel(isSmart: tool == .ai, readContext: readContext,
                               insertText: insertText, fullAccess: fullAccess)
@@ -107,7 +117,7 @@ struct LabToolPage: View {
             LabProfilesPanel()
         case .layouts:
             LabLayoutsPanel()
-        case .handwriting, .scripts:
+        case .handwriting, .scripts, .gif:
             EmptyView()
         }
     }
@@ -155,80 +165,114 @@ struct LabSearchPanel: View {
     private var ready: Bool { fullAccess && networkAllowed }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            LabHint(text: tool == .sefaria
-                    ? "Search Torah, Mishnah, Talmud and commentaries with Sefaria's official API."
-                    : tool == .wikipedia
-                      ? "Search the Hebrew or English Wikipedia live."
-                      : "Look up English definitions using the free dictionary API.",
-                    icon: "magnifyingglass")
-
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                TextField("Enter a word or phrase", text: $query)
-                    .font(.subheadline)
-                    .submitLabel(.search)
-                    .onSubmit(runSearch)
-                    .textInputAutocapitalization(.never)
-                Button("Paste") {
-                    if ready { query = UIPasteboard.general.string ?? "" }
+        VStack(spacing: 9) {
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                Text(query.isEmpty ? "Type a word to search..." : query)
+                    .foregroundStyle(query.isEmpty ? .secondary : .primary)
+                    .font(.system(size: 15))
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, minHeight: 29, alignment: .leading)
+                if !query.isEmpty {
+                    Button {
+                        query = ""
+                        model.cancel()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .font(.caption)
-                .disabled(!ready)
             }
-            .padding(11)
+            .padding(.horizontal, 14)
+            .frame(height: 45)
             .background(Color(uiColor: .tertiarySystemBackground),
-                        in: RoundedRectangle(cornerRadius: 12))
+                        in: RoundedRectangle(cornerRadius: 14))
+            .padding(.horizontal, 13)
+            .padding(.top, 8)
 
-            HStack(spacing: 9) {
+            HStack(spacing: 10) {
                 Button("From cursor") {
-                    let context = readContext()
-                    query = String((context.components(separatedBy: .newlines).last ?? context).suffix(100))
+                    let text = readContext()
+                    query = String((text.components(separatedBy: .newlines).last ?? text).suffix(100))
                         .trimmingCharacters(in: .whitespacesAndNewlines)
                 }
                 .buttonStyle(.bordered)
 
+                Button("Paste") {
+                    if fullAccess { query = UIPasteboard.general.string ?? "" }
+                }
+                .buttonStyle(.bordered)
+                .disabled(!fullAccess)
+
                 Button("Search", action: runSearch)
                     .buttonStyle(.borderedProminent)
-                    .disabled(!ready || query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(!ready || query.isEmpty)
 
                 if model.loading { ProgressView().controlSize(.small) }
+                Spacer(minLength: 0)
             }
+            .padding(.horizontal, 13)
+            .font(.caption)
 
             if !ready {
-                LabHint(text: "Enable Full Access in iPad Settings and Network On in the Script Studio to use live services.", icon: "wifi.slash")
+                Text("Enable Full Access and Network On in Script Studio for live results.")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+                    .padding(.horizontal, 13)
             }
             if !model.notice.isEmpty {
                 Text(model.notice)
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 14)
             }
 
-            ForEach(model.results) { result in
-                Button { insertText(result.insertion) } label: {
-                    VStack(alignment: .leading, spacing: 7) {
-                        Text(result.title).font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.primary)
-                            .multilineTextAlignment(.leading)
-                        if !result.summary.isEmpty {
-                            Text(result.summary)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(4)
-                                .multilineTextAlignment(.leading)
+            ScrollView {
+                LazyVStack(spacing: 9) {
+                    ForEach(model.results) { result in
+                        Button { insertText(result.insertion) } label: {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(result.title)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.primary)
+                                    .multilineTextAlignment(.leading)
+                                if !result.summary.isEmpty {
+                                    Text(result.summary)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(3)
+                                        .multilineTextAlignment(.leading)
+                                }
+                                Label("Insert", systemImage: "text.insert")
+                                    .font(.caption2)
+                                    .foregroundStyle(.indigo)
+                            }
+                            .padding(11)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color(uiColor: .tertiarySystemBackground),
+                                        in: RoundedRectangle(cornerRadius: 13))
                         }
-                        Label("Insert into text field", systemImage: "text.insert")
-                            .font(.caption2)
-                            .foregroundStyle(.indigo)
+                        .buttonStyle(.plain)
                     }
-                    .padding(13)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(uiColor: .tertiarySystemBackground),
-                                in: RoundedRectangle(cornerRadius: 14))
+                    if model.results.isEmpty && !model.loading {
+                        Text("Enter a query on the keyboard below, then tap Search.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 12)
+                    }
                 }
-                .buttonStyle(.plain)
+                .padding(.horizontal, 13)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            Divider()
+            LabInlineKeyboard(text: $query, submit: runSearch)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .background(Color(uiColor: .secondarySystemBackground))
         .onDisappear { model.cancel() }
     }
 

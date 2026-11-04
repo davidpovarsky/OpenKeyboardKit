@@ -68,7 +68,7 @@ jobs:
           assert keyboard["NSExtension"]["NSExtensionPointIdentifier"] == "com.apple.keyboard-service"
           assert keyboard["NSExtension"]["NSExtensionPrincipalClass"] == "TrialKeyboardExtension.KeyboardViewController"
           assert keyboard["CFBundleIdentifier"] == host["CFBundleIdentifier"] + ".extension"
-          assert keyboard["CFBundleShortVersionString"] == "0.4.0"
+          assert keyboard["CFBundleShortVersionString"] == "0.5.0"
           assert attrs["RequestsOpenAccess"] is True
           assert attrs["IsASCIICapable"] is True
           assert attrs["PrimaryLanguage"] == "en-US"
@@ -91,8 +91,8 @@ jobs:
         if: github.ref == 'refs/heads/feature/keyboard-lab-suite'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: keyboard-lab-v0.4.0
-          name: "Keyboard Lab v0.4.0 - Script Studio & Native Tools"
+          tag_name: keyboard-lab-v0.5.0
+          name: "Keyboard Lab v0.5.0 - Native Search & GIF Gallery"
           target_commitish: ${{ github.sha }}
           prerelease: true
           files: TrialKeyboard-unsigned.ipa
