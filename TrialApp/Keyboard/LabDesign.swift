@@ -2,10 +2,12 @@ import SwiftUI
 import Pow
 
 enum LabDesign {
-    static let canvas = Color(uiColor: .secondarySystemBackground)
-    static let card = Color(uiColor: .tertiarySystemBackground)
+    static let canvas = Color(uiColor: .secondarySystemGroupedBackground)
+    static let card = Color(uiColor: .secondarySystemBackground)
+    static let mint = Color(red: 0.13, green: 0.66, blue: 0.49)
+    static let stroke = Color.primary.opacity(0.07)
     static func accent(_ selected: String) -> Color {
-        LabTheme(rawValue: selected)?.accent ?? .indigo
+        LabTheme(rawValue: selected)?.accent ?? mint
     }
 }
 
@@ -36,7 +38,7 @@ struct LabSectionHeading: View {
         HStack(spacing: 10) {
             Image(systemName: icon)
                 .font(.system(size: 18, weight: .medium))
-                .foregroundStyle(.indigo)
+                .foregroundStyle(LabDesign.mint)
                 .frame(width: 37, height: 37)
                 .background(.indigo.opacity(0.1),
                             in: RoundedRectangle(cornerRadius: 12))
@@ -91,7 +93,7 @@ struct LabEditableField: View {
                     Spacer(minLength: 0)
                     if active && !multiline {
                         Image(systemName: "character.cursor.ibeam")
-                            .foregroundStyle(.indigo)
+                            .foregroundStyle(LabDesign.mint)
                             .font(.caption2)
                     }
                 }
@@ -102,9 +104,9 @@ struct LabEditableField: View {
             .padding(.horizontal, 13)
             .padding(.vertical, multiline ? 10 : 0)
             .background(RoundedRectangle(cornerRadius: 14)
-                .fill(LabDesign.card.opacity(0.9)))
+                .fill(LabDesign.card))
             .overlay(RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(active ? Color.indigo.opacity(0.8) :
+                .strokeBorder(active ? LabDesign.mint.opacity(0.85) :
                               Color.primary.opacity(0.06), lineWidth: active ? 1.5 : 0.7))
         }
         .buttonStyle(.plain)
@@ -136,8 +138,8 @@ struct LabInputAccessory: View {
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 15)
-        .frame(height: 33)
-        .background(.thinMaterial)
+        .frame(height: 36)
+        .background(.regularMaterial)
     }
 }
 
@@ -147,6 +149,7 @@ struct LabAnimatedTile: View {
     let symbol: String
     let tint: Color
     let action: () -> Void
+
     @State private var selectionCount = 0
 
     var body: some View {
@@ -154,30 +157,40 @@ struct LabAnimatedTile: View {
             selectionCount += 1
             action()
         } label: {
-            VStack(alignment: .leading, spacing: 9) {
-                HStack {
+            VStack(alignment: .leading, spacing: 11) {
+                HStack(alignment: .top) {
                     Image(systemName: symbol)
-                        .font(.system(size: 23, weight: .light))
+                        .font(.system(size: 20, weight: .medium))
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(tint)
-                        .frame(width: 38, height: 38)
-                        .background(tint.opacity(0.14),
-                                    in: RoundedRectangle(cornerRadius: 12))
-                    Spacer()
+                        .frame(width: 41, height: 41)
+                        .background(tint.opacity(0.12),
+                                    in: RoundedRectangle(cornerRadius: 13))
+                    Spacer(minLength: 3)
                     Image(systemName: "arrow.up.right")
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(tint.opacity(0.8))
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.tertiary)
                 }
-                Text(title).font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.primary).lineLimit(1)
-                Text(detail).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    Text(detail)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
-            .frame(maxWidth: .infinity, minHeight: 93, alignment: .leading)
-            .padding(12)
-            .background(RoundedRectangle(cornerRadius: 17)
-                .fill(tint.opacity(0.10)))
-            .overlay(RoundedRectangle(cornerRadius: 17)
-                .strokeBorder(tint.opacity(0.2), lineWidth: 0.8))
+            .frame(maxWidth: .infinity, minHeight: 105, alignment: .leading)
+            .padding(14)
+            .background(LabDesign.card, in: RoundedRectangle(cornerRadius: 19))
+            .overlay {
+                RoundedRectangle(cornerRadius: 19)
+                    .strokeBorder(LabDesign.stroke, lineWidth: 1)
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 19))
             .changeEffect(.shine, value: selectionCount)
         }
         .buttonStyle(.plain)

@@ -107,7 +107,7 @@ enum LabTheme: String, CaseIterable, Identifiable {
     var title: String { rawValue.capitalized }
     var accent: Color {
         switch self {
-        case .classic: return .indigo
+        case .classic: return Color(red: 0.13, green: 0.66, blue: 0.49)
         case .lavender: return Color(red: 0.58, green: 0.38, blue: 0.83)
         case .mint: return Color(red: 0.11, green: 0.62, blue: 0.48)
         case .coral: return Color(red: 0.91, green: 0.36, blue: 0.36)
